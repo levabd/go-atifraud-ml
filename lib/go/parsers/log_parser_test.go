@@ -6,8 +6,6 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/levabd/go-atifraud-ml/lib/go/helpers"
 	"time"
-	"path/filepath"
-	"os"
 )
 
 func TestDataOrderingParsing(t *testing.T)  {
@@ -208,9 +206,9 @@ func TestParseLatestLogGzFile(t *testing.T) {
 		finish.Unix(),
 		true)
 
-	helpers.AssertEqual(t,  len(main_table), 16, "main_table be 16 in len")
-	helpers.AssertEqual(t,  len(value_table), 16, "value_table be 16 in len")
-	helpers.AssertEqual(t,  len(ordered_table), 16, "ordered_table be 16 in len")
+	helpers.AssertEqual(t,  len(main_table), 15, "main_table be 15 in len")
+	helpers.AssertEqual(t,  len(value_table), 15, "value_table be 15 in len")
+	helpers.AssertEqual(t,  len(ordered_table), 15, "ordered_table be 15 in len")
 }
 
 func init() {
