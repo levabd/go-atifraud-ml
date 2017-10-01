@@ -244,13 +244,6 @@ func PrepareData(start_log_time int64, finish_log_time int64) {
 	println(fmt.Sprintf("trimmed_value_data %v", len(trimmed_value_data)))
 	println(fmt.Sprintf("pair_dict_list len %v", len(pair_dict_list )))
 	println(fmt.Sprintf("pair_dict_list value %v", pair_dict_list ))
-
-	for _, dict:=range pair_dict_list {
-	fmt.Println(fmt.Sprintf("dict full: %+v", dict))
-		for key,value := range dict {
-			fmt.Println(fmt.Sprintf("%s : %v ", key, value))
-		}
-	}
 }
 
 func GetTrimmedLodMapsForPeriod(

@@ -11,7 +11,6 @@ func GetPairsDictList(ordered_headers_table []map[string]interface{}) []map[stri
 
 	for _, ordered_headers := range ordered_headers_table {
 		pairs_dict := make(map[string]int)
-		fmt.Println(fmt.Sprintf("ordered_headers %+v", ordered_headers))
 		for combination := range GenerateCombinationsMap(ordered_headers) {
 			pairs_dict[DefineKeyFoPair(combination)] = 1
 		}

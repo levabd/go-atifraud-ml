@@ -20,3 +20,5 @@ applog: 2017/10/01 05:06:38 log_parser.go:53: parsers.HandleLogLine: timeIsWrong
 applog: 2017/10/01 05:06:38 log_parser.go:53: parsers.HandleLogLine: timeIsWrong: log_time - 1503090019, start_log_time - 1503090001, finish_log_time 1503090015
 applog: 2017/10/01 05:09:17 log_parser.go:53: parsers.HandleLogLine: timeIsWrong: log_time - 1503080000, start_log_time - 1503090000, finish_log_time 1503090015
 applog: 2017/10/01 05:09:17 log_parser.go:53: parsers.HandleLogLine: timeIsWrong: log_time - 1503090019, start_log_time - 1503090001, finish_log_time 1503090015
+applog: 2017/10/01 12:04:46 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503080000, start_log_time - 1503090000, finish_log_time 1503090015
+applog: 2017/10/01 12:04:46 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503090019, start_log_time - 1503090001, finish_log_time 1503090015
