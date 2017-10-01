@@ -7,13 +7,51 @@ import (
 	"compress/gzip"
 	"io/ioutil"
 	"strconv"
-	"testing"
-	"fmt"
-	"encoding/json"
 	"time"
+	"log"
+	"github.com/joho/godotenv"
+	"flag"
 )
 
-func GetFileFromDirWithExt(path string,  ext string) []string {
+var env_is_loaded = false
+var env_is_testing = false
+
+func IsTesting() bool {
+	if env_is_testing {
+		return true
+	}
+
+	return flag.Lookup("test.v") != nil
+}
+
+func LoadEnv() error {
+
+	if env_is_loaded {
+		return nil
+	}
+
+	path_to_env, err := filepath.Abs("./.")
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	if env_is_testing = IsTesting(); env_is_testing {
+		path_to_env = filepath.Join(path_to_env, "..", ".env")
+	} else {
+		path_to_env = filepath.Join(path_to_env, "lib", "go", ".env")
+	}
+	if _, err := os.Stat(path_to_env); os.IsNotExist(err) {
+		return err
+	}
+
+	godotenv.Load(path_to_env)
+	env_is_loaded = true
+
+	return nil
+}
+
+func GetFileFromDirWithExt(path string, ext string) []string {
 	var files []string
 	filepath.Walk(path, func(path string, f os.FileInfo, _ error) error {
 		if !f.IsDir() {
@@ -47,16 +85,16 @@ func ReadGzFile(filename string) ([]byte, error) {
 	return s, nil
 }
 
-func UnixTimestampStrToTime(str string ) time.Time {
-	if str == ""{
+func UnixTimestampStrToTime(str string) time.Time {
+	if str == "" {
 		return time.Date(0, 0, 0, 0, 0, 0, 0, time.UTC)
 	}
-	tm := time.Unix(StrToInt(str), 0)
+	tm := time.Unix(StrToInt64(str), 0)
 	return tm
 }
 
-func StrToInt(t string) int64 {
-	if t == ""{
+func StrToInt64(t string) int64 {
+	if t == "" {
 		return 0
 	}
 	i, err := strconv.ParseInt(t, 10, 64)
@@ -67,16 +105,17 @@ func StrToInt(t string) int64 {
 	return i
 }
 
-func AssertEqual(t *testing.T, a interface{}, b interface{}, message string) {
-	if a == b {
-		return
+func StrToInt(t string) int64 {
+	if t == "" {
+		return 0
 	}
-	if len(message) == 0 {
-		message = fmt.Sprintf("%v != %v", a, b)
+	i, err := strconv.ParseInt(t, 10, 0)
+	if err != nil {
+		panic(err)
 	}
-	t.Fatal(message)
-}
 
+	return i
+}
 
 func GetMapValueByKey(main_row map[string]interface{}, key string) string {
 
@@ -91,8 +130,12 @@ func GetMapValueByKey(main_row map[string]interface{}, key string) string {
 	return main_row[key].(string)
 }
 
-func IsJSONString(s string) bool {
-	var js string
-	return json.Unmarshal([]byte(s), &js) == nil
 
+func GetRandomKeyFromMap(_map map[string]interface{}) string {
+	var _key string
+	for _key, _ = range _map {
+		break
+	}
+
+	return _key
 }

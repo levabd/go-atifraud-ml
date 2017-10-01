@@ -1,0 +1,22 @@
+applog: 2017/09/30 04:10:25 parse_gz_logs.go:83: parse_gz_logs.go - main: File 2017-08-17.log.gz name 
+applog: 2017/09/30 04:10:25 parse_gz_logs.go:91: File 2017-08-17.log.gz already loaded to DB
+applog: 2017/09/30 04:10:25 parse_gz_logs.go:83: parse_gz_logs.go - main: File 2017-08-19.log.gz name 
+applog: 2017/09/30 04:10:25 parse_gz_logs.go:91: File 2017-08-19.log.gz already loaded to DB
+applog: 2017/09/30 04:10:25 parse_gz_logs.go:108: parse_gz_logs.go - main: Parsed and saved 2 files
+applog: 2017/09/30 04:13:48 parse_gz_logs.go:116: parse_gz_logs.go - main: Getting latest log file failure: File 2017-08-19.log.gz already loaded to DB
+applog: 2017/09/30 04:14:01 parse_gz_logs.go:83: parse_gz_logs.go - main: File 2017-08-17.log.gz name 
+applog: 2017/09/30 04:14:01 parse_gz_logs.go:91: File 2017-08-17.log.gz already loaded to DB
+applog: 2017/09/30 04:14:01 parse_gz_logs.go:83: parse_gz_logs.go - main: File 2017-08-19.log.gz name 
+applog: 2017/09/30 04:14:01 parse_gz_logs.go:91: File 2017-08-19.log.gz already loaded to DB
+applog: 2017/09/30 04:14:01 parse_gz_logs.go:108: parse_gz_logs.go - main: Parsed and saved 2 files
+applog: 2017/10/01 03:00:20 parse_gz_logs.go:112: parse_gz_logs.go - main: Getting latest log file failure: File 2017-08-19.log.gz already loaded to DB
+applog: 2017/10/01 03:12:30 parse_gz_logs.go:112: parse_gz_logs.go - main: Getting latest log file failure: File 2017-08-19.log.gz already loaded to DB
+applog: 2017/10/01 03:13:20 parse_gz_logs.go:112: parse_gz_logs.go - main: Getting latest log file failure: File 2017-08-19.log.gz already loaded to DB
+applog: 2017/10/01 03:17:12 parse_gz_logs.go:114: parse_gz_logs.go - main: Getting latest log file failure: File 2017-08-19.log.gz already loaded to DB
+applog: 2017/10/01 03:19:07 parse_gz_logs.go:114: parse_gz_logs.go - main: Getting latest log file failure: File 2017-08-19.log.gz already loaded to DB
+applog: 2017/10/01 03:45:58 parse_gz_logs.go:114: parse_gz_logs.go - main: Getting latest log file failure: File 2017-08-19.log.gz already loaded to DB
+applog: 2017/10/01 03:47:13 parse_gz_logs.go:135: parse_gz_logs.go - main: Successfully parse file:  2017-08-19.log.gz
+applog: 2017/10/01 05:06:38 log_parser.go:53: parsers.HandleLogLine: timeIsWrong: log_time - 1503080000, start_log_time - 1503090000, finish_log_time 1503090015
+applog: 2017/10/01 05:06:38 log_parser.go:53: parsers.HandleLogLine: timeIsWrong: log_time - 1503090019, start_log_time - 1503090001, finish_log_time 1503090015
+applog: 2017/10/01 05:09:17 log_parser.go:53: parsers.HandleLogLine: timeIsWrong: log_time - 1503080000, start_log_time - 1503090000, finish_log_time 1503090015
+applog: 2017/10/01 05:09:17 log_parser.go:53: parsers.HandleLogLine: timeIsWrong: log_time - 1503090019, start_log_time - 1503090001, finish_log_time 1503090015
