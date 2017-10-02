@@ -109,9 +109,15 @@ func StrToInt(t string) int64 {
 	if t == "" {
 		return 0
 	}
+
 	i, err := strconv.ParseInt(t, 10, 0)
 	if err != nil {
-		panic(err)
+		fl, err := strconv.ParseFloat(t, 0)
+		if err != nil {
+			panic(err)
+		}
+
+		return  int64(fl)
 	}
 
 	return i

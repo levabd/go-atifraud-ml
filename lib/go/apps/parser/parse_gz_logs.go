@@ -45,6 +45,9 @@ func needAllFilesParsing(args []string) bool {
 //     go run lib/go/commands/parse_gz_logs.go [false]
 func main() {
 
+//	println("started parsing files at ", time.Now().String())
+//	services.Logger.Fatalf("started parsing files at %s ", time.Now().String())
+
 	if os.Getenv("PARSER_TIME_END") == "" || os.Getenv("PARSER_TIME_START") == "" {
 		println("parse_gz_logs.go - main: PARSER_TIME_END and PARSER_TIME_START are not specified. Please check if there is an .env file in lib/go dir with such keys.")
 		services.Logger.Fatalf("parse_gz_logs.go - main: PARSER_TIME_END and PARSER_TIME_START are not specified. Please check if there is an .env file in lib/go dir with such keys.")
@@ -133,6 +136,9 @@ func main() {
 
 	fmt.Printf("parse_gz_logs.go - main: Successfully parse file: %s ", e)
 	services.Logger.Println("parse_gz_logs.go - main: Successfully parse file: ", file_name)
+
+//	println("ended parsing files at ", time.Now().String())
+//	services.Logger.Fatalf("ended parsing files at %s ", time.Now().String())
 }
 
 func init() {
