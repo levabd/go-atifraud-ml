@@ -22,3 +22,39 @@ applog: 2017/10/01 05:09:17 log_parser.go:53: parsers.HandleLogLine: timeIsWrong
 applog: 2017/10/01 05:09:17 log_parser.go:53: parsers.HandleLogLine: timeIsWrong: log_time - 1503090019, start_log_time - 1503090001, finish_log_time 1503090015
 applog: 2017/10/01 12:04:46 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503080000, start_log_time - 1503090000, finish_log_time 1503090015
 applog: 2017/10/01 12:04:46 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503090019, start_log_time - 1503090001, finish_log_time 1503090015
+applog: 2017/10/02 04:06:31 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503080000, start_log_time - 1503090000, finish_log_time 1503090015
+applog: 2017/10/02 04:06:31 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503090019, start_log_time - 1503090001, finish_log_time 1503090015
+applog: 2017/10/02 04:07:33 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503080000, start_log_time - 1503090000, finish_log_time 1503090015
+applog: 2017/10/02 04:07:33 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503090019, start_log_time - 1503090001, finish_log_time 1503090015
+applog: 2017/10/02 05:17:29 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503080000, start_log_time - 1503090000, finish_log_time 1503090015
+applog: 2017/10/02 05:17:29 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503090019, start_log_time - 1503090001, finish_log_time 1503090015
+applog: 2017/10/02 05:18:20 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503080000, start_log_time - 1503090000, finish_log_time 1503090015
+applog: 2017/10/02 05:18:20 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503090019, start_log_time - 1503090001, finish_log_time 1503090015
+applog: 2017/10/02 05:19:25 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503080000, start_log_time - 1503090000, finish_log_time 1503090015
+applog: 2017/10/02 05:19:25 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503090019, start_log_time - 1503090001, finish_log_time 1503090015
+applog: 2017/10/02 05:19:58 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503080000, start_log_time - 1503090000, finish_log_time 1503090015
+applog: 2017/10/02 05:19:58 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503090019, start_log_time - 1503090001, finish_log_time 1503090015
+applog: 2017/10/02 05:24:28 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503080000, start_log_time - 1503090000, finish_log_time 1503090015
+applog: 2017/10/02 05:24:28 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503090019, start_log_time - 1503090001, finish_log_time 1503090015
+applog: 2017/10/02 05:25:37 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503080000, start_log_time - 1503090000, finish_log_time 1503090015
+applog: 2017/10/02 05:25:37 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503090019, start_log_time - 1503090001, finish_log_time 1503090015
+applog: 2017/10/02 05:26:32 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503080000, start_log_time - 1503090000, finish_log_time 1503090015
+applog: 2017/10/02 05:26:32 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503090019, start_log_time - 1503090001, finish_log_time 1503090015
+applog: 2017/10/02 05:27:51 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503080000, start_log_time - 1503090000, finish_log_time 1503090015
+applog: 2017/10/02 05:27:51 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503090019, start_log_time - 1503090001, finish_log_time 1503090015
+applog: 2017/10/02 05:28:23 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503080000, start_log_time - 1503090000, finish_log_time 1503090015
+applog: 2017/10/02 05:28:23 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503090019, start_log_time - 1503090001, finish_log_time 1503090015
+applog: 2017/10/02 05:29:02 parse_gz_logs.go:134: parse_gz_logs.go - main: Successfully parse file:  2017-08-19.log.gz
+applog: 2017/10/02 05:32:11 parse_gz_logs.go:134: parse_gz_logs.go - main: Successfully parse file:  2017-08-19.log.gz
+applog: 2017/10/02 05:34:55 parse_gz_logs.go:134: parse_gz_logs.go - main: Successfully parse file:  2017-08-19.log.gz
+applog: 2017/10/02 05:39:01 parse_gz_logs.go:134: parse_gz_logs.go - main: Successfully parse file:  2017-08-19.log.gz
+applog: 2017/10/02 05:47:21 parse_gz_logs.go:113: parse_gz_logs.go - main: Getting latest log file failure: File 2017-08-19.log.gz already loaded to DB 
+applog: 2017/10/02 05:47:38 parse_gz_logs.go:134: parse_gz_logs.go - main: Successfully parse file:  2017-08-19.log.gz
+applog: 2017/10/02 05:58:22 parse_gz_logs.go:114: parse_gz_logs.go - main: Getting latest log file failure: File 2017-08-19.log.gz already loaded to DB 
+applog: 2017/10/02 05:59:04 parse_gz_logs.go:114: parse_gz_logs.go - main: Getting latest log file failure: File 2017-08-19.log.gz already loaded to DB 
+applog: 2017/10/02 05:59:32 parse_gz_logs.go:135: parse_gz_logs.go - main: Successfully parse file:  2017-08-19.log.gz
+applog: 2017/10/02 06:05:34 parse_gz_logs.go:135: parse_gz_logs.go - main: Successfully parse file:  2017-08-19.log.gz
+applog: 2017/10/02 06:06:26 parse_gz_logs.go:135: parse_gz_logs.go - main: Successfully parse file:  2017-08-19.log.gz
+applog: 2017/10/02 06:07:44 parse_gz_logs.go:135: parse_gz_logs.go - main: Successfully parse file:  2017-08-19.log.gz
+applog: 2017/10/02 06:11:26 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503080000, start_log_time - 1503090000, finish_log_time 1503090015
+applog: 2017/10/02 06:11:26 parser.go:52: parsers.HandleLogLine: timeIsWrong: log_time - 1503090019, start_log_time - 1503090001, finish_log_time 1503090015

@@ -40,7 +40,6 @@ func TestGetPairsDictList(t *testing.T) {
 		carbon.Now().SubMonths(1).Unix())
 
 	pairs_dict_list := GetPairsDictList(trimmed_order_data)
-	println(pairs_dict_list)
 
 	assert.Equal(t, 2, len(pairs_dict_list))
 	assert.Equal(t, 15, len(pairs_dict_list[0]))

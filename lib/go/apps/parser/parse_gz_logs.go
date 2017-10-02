@@ -71,6 +71,7 @@ func main() {
 	if need_all_file_parsing {
 
 		logs_dir := filepath.Join(os.Getenv("APP_ROOT_DIR"), "data", "logs")
+
 		files := helpers.GetFileFromDirWithExt(logs_dir, "gz")
 		files_to_handle := len(files)
 
@@ -113,7 +114,7 @@ func main() {
 		services.Logger.Fatalf("parse_gz_logs.go - main: Getting latest log file failure: %s ", err)
 		return
 	}
-
+	println("full_file_path", full_file_path)
 	// store new loaded log
 	db.Create(&m.GzLog{FileName: file_name})
 

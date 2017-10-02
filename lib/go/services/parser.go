@@ -84,7 +84,7 @@ func HandleLogLine(
 
 		// define crawler in User-Agent
 		if ua, ok := value_row["User-Agent"].(string); ok {
-			if filter_crawlers && UaIsCrawler(elements[1], ua) {
+			if filter_crawlers && IsCrawler(elements[1], ua) {
 				result = false
 				return result, nil, nil, nil
 			}
@@ -243,7 +243,7 @@ func PrepareData(start_log_time int64, finish_log_time int64) {
 
 	println(fmt.Sprintf("trimmed_value_data %v", len(trimmed_value_data)))
 	println(fmt.Sprintf("pair_dict_list len %v", len(pair_dict_list )))
-	println(fmt.Sprintf("pair_dict_list value %v", pair_dict_list ))
+	//println(fmt.Sprintf("pair_dict_list value %v", pair_dict_list ))
 }
 
 func GetTrimmedLodMapsForPeriod(

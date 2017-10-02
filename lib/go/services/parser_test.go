@@ -142,7 +142,7 @@ func TestGetUa(t *testing.T) {
 func TestFindBotByUaFamily(t *testing.T) {
 	_assert := assert.New(t)
 
-	is_crawler := IsCrawlerByUdger("12", `Mozilla/5.0 (compatible; Googlebot/2.1; startmebot/1.0; +https://start.me/bot)`)
+	is_crawler := IsCrawler("12", `Mozilla/5.0 (compatible; Googlebot/2.1; startmebot/1.0; +https://start.me/bot)`)
 	_assert.Equal(true, is_crawler, "is_crawler must be true")
 }
 
@@ -276,9 +276,9 @@ func TestGetLogsInPeriod(t *testing.T) {
 
 	logs := GetLogsInPeriod(
 		carbon.Now().SubMonths(2).Unix(),
-		carbon.Now().SubMonths(1).Unix())
+		carbon.Now().Unix())
 
-	assert.Equal(t, 2, len(logs), "Error must not be nil")
+	assert.Equal(t, 3, len(logs), "Error must not be nil")
 	m.TruncateTable("logs")
 }
 
@@ -335,5 +335,7 @@ func TestPrepareData(t *testing.T) {
 	tx.Commit()
 
 	PrepareData(carbon.Now().SubMonths(2).Unix(), carbon.Now().SubMonths(1).Unix())
+	m.TruncateTable("logs")
+
 }
 

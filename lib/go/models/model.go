@@ -29,6 +29,25 @@ func GetDBConnectionStr() string {
 	return buffer.String()
 }
 
+func GetUdger() string {
+	var buffer bytes.Buffer
+	buffer.WriteString("host=")
+	buffer.WriteString(os.Getenv("DB_HOST"))
+	buffer.WriteString(" ")
+	buffer.WriteString("user=")
+	buffer.WriteString(os.Getenv("DB_USERNAME"))
+	buffer.WriteString(" ")
+	buffer.WriteString("dbname=")
+	buffer.WriteString(os.Getenv("DB_NAME"))
+	buffer.WriteString(" ")
+	buffer.WriteString("sslmode=")
+	buffer.WriteString("disable")
+	buffer.WriteString(" ")
+	buffer.WriteString("password=")
+	buffer.WriteString(os.Getenv("DB_PASSWORD"))
+	return buffer.String()
+}
+
 func (m Model) JsonStrToMap(str string)  map[string]interface{}  {
 	data := []byte(str)
 	value_row:=make(map[string]interface{} )

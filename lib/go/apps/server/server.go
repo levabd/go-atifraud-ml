@@ -71,7 +71,7 @@ func HandleLogLine(line string) (string, map[string]interface{}, map[string]inte
 func handleRequest(w http.ResponseWriter, r *http.Request) {
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Print("upgrade:", err)
+		log.Println("upgrade:", err)
 		return
 	}
 	defer c.Close()

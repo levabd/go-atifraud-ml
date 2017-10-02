@@ -4,11 +4,11 @@ import (
 	"os"
 	"fmt"
 	"os/exec"
-	"github.com/buger/jsonparser"
 	"strings"
 	"path/filepath"
 	"log"
 	"github.com/joho/godotenv"
+	"github.com/buger/jsonparser"
 )
 
 // private method
@@ -136,7 +136,7 @@ func IsCrawlerByUdger(client_ip string, client_ua string) bool {
 }
 
 // public method - search by go user agent parser
-func UaIsCrawler(ip string, ua string) bool {
+func PyIsCrawler(ip string, ua string) bool {
 	var (
 		result bool = false
 	)
@@ -147,7 +147,7 @@ func UaIsCrawler(ip string, ua string) bool {
 	return result
 }
 
-func GetUa(client_ua string) map[string]interface{} {
+func PyGetUa(client_ua string) map[string]interface{} {
 	cmd := 	exec.Command("python3", filepath.Join(os.Getenv("APP_ROOT_DIR"),"lib", "python", "getUa.py"), client_ua)
 	cmd.Wait()
 	out, err := cmd.CombinedOutput()
