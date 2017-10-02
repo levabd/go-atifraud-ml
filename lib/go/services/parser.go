@@ -244,7 +244,6 @@ func GetLatestLogFilePath() (string, string, error) {
 	}
 }
 
-
 func PrepareData(start_log_time int64, finish_log_time int64) {
 	trimmed_value_data, trimmed_order_data :=GetTrimmedLodMapsForPeriod(start_log_time, finish_log_time)
 	pair_dict_list := GetPairsDictList(trimmed_order_data)

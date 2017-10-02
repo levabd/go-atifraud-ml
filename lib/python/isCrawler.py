@@ -119,7 +119,6 @@ def is_crawler(client_ip, client_ua):
     udger = Udger(data_dir)
 
     ua_c = udger.parse_ua(client_ua)
-    print(ua_c)
     if ((udger.parse_ip(client_ip)['ip_classification_code'] == 'crawler') or
         (ua_c['ua_class_code'] == 'crawler') or (ua_c['ua_family_code'] in bots_ua_family)):
         return True

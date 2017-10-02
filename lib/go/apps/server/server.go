@@ -9,6 +9,8 @@ import (
 	"time"
 	"strings"
 	"github.com/buger/jsonparser"
+	m "github.com/levabd/go-atifraud-ml/lib/go/models"
+	s"github.com/levabd/go-atifraud-ml/lib/go/services"
 )
 
 var addr = flag.String("addr", "localhost:8080", "http service address")
@@ -22,14 +24,32 @@ func handleHeader(response string) bool {
 
 	main_data, value_data, order_data := HandleLogLine(response)
 
+	trimmed_value, trimmed_order:= TrimData(value_data, order_data)
+	fmt.Println(fmt.Sprintf("trimmed_order %+v ", trimmed_order))
+	pair_dict:= s.GetPairDictForHeaders(trimmed_order)
+
 	end := time.Now()
 	println(end.Minute(), end.Second(), end.Nanosecond(), end.Nanosecond()-start_nanosecond)
 
-	fmt.Printf("%s\n", main_data)
-	fmt.Printf("%+v\n", value_data)
-	fmt.Printf("%+v\n", order_data)
+	fmt.Printf("main_data: %s\n", main_data)
+	fmt.Printf("value_data: %+v\n", value_data)
+	fmt.Printf("order_data: %+v\n", order_data)
+	fmt.Printf("trimmed_value: %+v\n", trimmed_value)
+
+	fmt.Printf("pair_dict :%+v\n", pair_dict)
+
 
 	return true
+}
+
+func TrimData(
+	value_data map[string]interface{},
+	order_data map[string]interface{},
+) (map[string]interface{}, map[string]interface{}) {
+
+	var header_model = m.Log{ValueData:value_data, OrderData: order_data}
+
+	return header_model.TrimValueData(), header_model.TrimOrderData()
 }
 
 func HandleLogLine(line string) (string, map[string]interface{}, map[string]interface{}) {

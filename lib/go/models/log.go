@@ -30,11 +30,14 @@ func (Log) TableName() string {
 }
 
 func (j JSONB) Value() (driver.Value, error) {
+
+
 	valueString, err := json.Marshal(j)
 	return string(valueString), err
 }
 
 func (j *JSONB) Scan(value interface{}) error {
+
 	if err := json.Unmarshal(value.([]byte), &j); err != nil {
 		return err
 	}
@@ -44,6 +47,7 @@ func (j *JSONB) Scan(value interface{}) error {
 func  (l *Log) TrimOrderData() map[string]interface{} {
 	tmp_row := make(map[string]interface{})
 	for key, value := range l.OrderData {
+
 		if IsInImportantOrdersKeySet(key){
 			tmp_row[key]=value
 		}
