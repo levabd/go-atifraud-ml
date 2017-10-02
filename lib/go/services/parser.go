@@ -47,28 +47,31 @@ func HandleLogLine(
 	}
 
 	if timeIsWrong(elements[0], start_log_time, finish_log_time) {
-		Logger.Printf(
-			"parsers.HandleLogLine: timeIsWrong: log_time - %s, start_log_time - %v, finish_log_time %v",
+		Logger.Printf("parsers.HandleLogLine: timeIsWrong: log_time - %s, start_log_time - %v, finish_log_time %v",
 			string(elements[0]), start_log_time, finish_log_time)
 
-		result = false
 		return false, nil, nil, nil
 	}
 
-	if filter_crawlers && elements[1] == "" {
-		result = false
-		return result, nil, nil, nil
+	if len(elements) < 3{
+		Logger.Printf("parsers.HandleLogLine: not enoth elements ")
+		return false, nil, nil, nil
 	}
 
-	if string(elements[2][0]) != "'" {
-		result = false
-		return result, nil, nil, nil
+	if filter_crawlers && (elements[0] == "" ||elements[1] == "" ||elements[2] == "") {
+		Logger.Printf("parsers.HandleLogLine: not enoth elements ")
+		return false, nil, nil, nil
 	}
-
-	json_to_parse := strings.Replace(string(elements[2]), " ", "", -1)
-	json_to_parse = strings.TrimPrefix(strings.TrimSuffix(json_to_parse, ""), "'")
 
 	if len(elements[2]) > 0 {
+		if string(elements[2][0]) != "'" {
+			Logger.Printf("parsers.HandleLogLine: string(elements[2][0]) != ' ")
+			return false, nil, nil, nil
+		}
+
+		json_to_parse := strings.Replace(string(elements[2]), " ", "", -1)
+		json_to_parse = strings.TrimPrefix(strings.TrimSuffix(json_to_parse, ""), "'")
+
 		data := []byte(json_to_parse)
 		i := 0
 		jsonparser.ObjectEach(data, func(
@@ -81,6 +84,11 @@ func HandleLogLine(
 			i = i + 1
 			return nil
 		})
+
+		if value_row["User-Agent"] ==nil{
+			Logger.Printf("parsers.ParseAndStoreSingleGzLogInDb: No user agent in header %s ", json_to_parse)
+			return false, nil, nil, nil
+		}
 
 		// define crawler in User-Agent
 		if ua, ok := value_row["User-Agent"].(string); ok {
@@ -235,7 +243,6 @@ func GetLatestLogFilePath() (string, string, error) {
 		return filepath.Join(logs_dir, file_name), file_name, nil
 	}
 }
-
 
 func PrepareData(start_log_time int64, finish_log_time int64) {
 	trimmed_value_data, trimmed_order_data :=GetTrimmedLodMapsForPeriod(start_log_time, finish_log_time)

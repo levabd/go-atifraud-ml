@@ -45,9 +45,10 @@ func needAllFilesParsing(args []string) bool {
 //     go run lib/go/commands/parse_gz_logs.go [false]
 func main() {
 
+
 	if os.Getenv("PARSER_TIME_END") == "" || os.Getenv("PARSER_TIME_START") == "" {
-		println("parse_gz_logs.go - main: PARSER_TIME_END and PARSER_TIME_START are not specified. Please check if there is an .env file in lib/go dir with such keys.")
-		services.Logger.Fatalf("parse_gz_logs.go - main: PARSER_TIME_END and PARSER_TIME_START are not specified. Please check if there is an .env file in lib/go dir with such keys.")
+		println("parse_gz_logs.go: main - PARSER_TIME_END and PARSER_TIME_START are not specified. Please check if there is an .env file in lib/go dir with such keys.")
+		services.Logger.Fatalf("parse_gz_logs.go: main - PARSER_TIME_END and PARSER_TIME_START are not specified. Please check if there is an .env file in lib/go dir with such keys.")
 		return
 	}
 
@@ -57,8 +58,8 @@ func main() {
 
 	db, err := gorm.Open("postgres", m.GetDBConnectionStr())
 	if err != nil {
-		fmt.Println(fmt.Printf("parse_gz_logs.go - main: Failed to connect database: %s ", err))
-		services.Logger.Fatalf("parse_gz_logs.go - main: Failed to connect database: %s ", err)
+		fmt.Println(fmt.Printf("parse_gz_logs.go: main - Failed to connect database: %s ", err))
+		services.Logger.Fatalf("parse_gz_logs.go: main - Failed to connect database: %s ", err)
 	}
 
 	if !db.HasTable(&m.GzLog{}) {
@@ -76,8 +77,8 @@ func main() {
 		files_to_handle := len(files)
 
 		for i := 0; i < files_to_handle; i++ {
-			fmt.Println(fmt.Printf("parse_gz_logs.go - main: File %s name ", files[i]))
-			services.Logger.Printf("parse_gz_logs.go - main: File %s name ", files[i])
+			fmt.Println(fmt.Printf("parse_gz_logs.go: main - File %s name ", files[i]))
+			services.Logger.Printf("parse_gz_logs.go: main - File %s name ", files[i])
 
 			gz_log := m.GzLog{}
 			db.Where("file_name = ?", files[i]).First(&gz_log)
@@ -96,22 +97,22 @@ func main() {
 				finish_log_time,
 				false)
 			if e != nil {
-				fmt.Println(fmt.Sprintf("parse_gz_logs.go - main: Failed to parse ind store log from: %s ",  files[i]))
-				services.Logger.Fatalf("parse_gz_logs.go - main: Failed to parse ind store log from: %s ", files[i])
+				fmt.Println(fmt.Sprintf("parse_gz_logs.go: main - Failed to parse ind store log from: %s ",  files[i]))
+				services.Logger.Fatalf("parse_gz_logs.go: main - Failed to parse ind store log from: %s ", files[i])
 			}
 			db.Create(&m.GzLog{FileName: files[i]})
-			services.Logger.Printf("parse_gz_logs.go - main: File %s was parsed and stored in DB ", files[i])
+			services.Logger.Printf("parse_gz_logs.go: main - File %s was parsed and stored in DB ", files[i])
 		}
-		fmt.Println(fmt.Sprintf("parse_gz_logs.go - main: Parsed and saved %v files", files_to_handle))
-		services.Logger.Printf("parse_gz_logs.go - main: Parsed and saved %v files", files_to_handle)
+		fmt.Println(fmt.Sprintf("parse_gz_logs.go: main - Parsed and saved %v files", files_to_handle))
+		services.Logger.Printf("parse_gz_logs.go: main - Parsed and saved %v files", files_to_handle)
 		return
 	}
 
 	// single latest log gz file parsing
 	full_file_path, file_name, err := services.GetLatestLogFilePath()
 	if err != nil {
-		fmt.Printf("parse_gz_logs.go - main: Getting latest log file failure: %s ", err)
-		services.Logger.Fatalf("parse_gz_logs.go - main: Getting latest log file failure: %s ", err)
+		fmt.Printf("parse_gz_logs.go: main - Getting latest log file failure: %s ", err)
+		services.Logger.Fatalf("parse_gz_logs.go: main - Getting latest log file failure: %s ", err)
 		return
 	}
 	println("full_file_path", full_file_path)
@@ -127,12 +128,12 @@ func main() {
 		false)
 
 	if e != nil {
-		fmt.Printf("parse_gz_logs.go - main: Failed to ParseAndStoreSingleGzLogInDb: %s", e)
-		services.Logger.Fatalf("parse_gz_logs.go - main: Failed to ParseAndStoreSingleGzLogInDb: %s", e)
+		fmt.Printf("parse_gz_logs.go: main - Failed to ParseAndStoreSingleGzLogInDb: %s", e)
+		services.Logger.Fatalf("parse_gz_logs.go: main - Failed to ParseAndStoreSingleGzLogInDb: %s", e)
 	}
 
-	fmt.Printf("parse_gz_logs.go - main: Successfully parse file: %s ", e)
-	services.Logger.Println("parse_gz_logs.go - main: Successfully parse file: ", file_name)
+	fmt.Printf("parse_gz_logs.go: main - Successfully parse file: %s ", e)
+	services.Logger.Println("parse_gz_logs.go: main - Successfully parse file: ", file_name)
 }
 
 func init() {
