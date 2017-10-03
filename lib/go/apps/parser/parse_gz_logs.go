@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"github.com/levabd/go-atifraud-ml/lib/go/helpers"
-	"github.com/levabd/go-atifraud-ml/lib/go/services"
+	s "github.com/levabd/go-atifraud-ml/lib/go/services"
 	m "github.com/levabd/go-atifraud-ml/lib/go/models"
 	"fmt"
 )
@@ -14,7 +14,7 @@ import (
 func init() {
 	err := helpers.LoadEnv()
 	if err != nil {
-		services.Logger.Fatalln(err)
+		s.Logger.Fatalln(err)
 	}
 }
 
@@ -45,10 +45,9 @@ func needAllFilesParsing(args []string) bool {
 //     go run lib/go/commands/parse_gz_logs.go [false]
 func main() {
 
-
 	if os.Getenv("PARSER_TIME_END") == "" || os.Getenv("PARSER_TIME_START") == "" {
 		println("parse_gz_logs.go: main - PARSER_TIME_END and PARSER_TIME_START are not specified. Please check if there is an .env file in lib/go dir with such keys.")
-		services.Logger.Fatalf("parse_gz_logs.go: main - PARSER_TIME_END and PARSER_TIME_START are not specified. Please check if there is an .env file in lib/go dir with such keys.")
+		s.Logger.Fatalf("parse_gz_logs.go: main - PARSER_TIME_END and PARSER_TIME_START are not specified. Please check if there is an .env file in lib/go dir with such keys.")
 		return
 	}
 
@@ -59,7 +58,7 @@ func main() {
 	db, err := gorm.Open("postgres", m.GetDBConnectionStr())
 	if err != nil {
 		fmt.Println(fmt.Printf("parse_gz_logs.go: main - Failed to connect database: %s ", err))
-		services.Logger.Fatalf("parse_gz_logs.go: main - Failed to connect database: %s ", err)
+		s.Logger.Fatalf("parse_gz_logs.go: main - Failed to connect database: %s ", err)
 	}
 
 	if !db.HasTable(&m.GzLog{}) {
@@ -78,18 +77,18 @@ func main() {
 
 		for i := 0; i < files_to_handle; i++ {
 			fmt.Println(fmt.Printf("parse_gz_logs.go: main - File %s name ", files[i]))
-			services.Logger.Printf("parse_gz_logs.go: main - File %s name ", files[i])
+			s.Logger.Printf("parse_gz_logs.go: main - File %s name ", files[i])
 
 			gz_log := m.GzLog{}
 			db.Where("file_name = ?", files[i]).First(&gz_log)
 
 			if gz_log.ID != 0 {
 				fmt.Println(fmt.Printf("File %s already loaded to DB ", files[i]))
-				services.Logger.Printf("File %s already loaded to DB ", files[i])
+				s.Logger.Printf("File %s already loaded to DB ", files[i])
 				continue
 			}
 
-			e := services.ParseAndStoreSingleGzLogInDb(
+			e := s.ParseAndStoreSingleGzLogInDb(
 				filepath.Join(logs_dir, files[i]),
 				true,
 				true,
@@ -97,29 +96,30 @@ func main() {
 				finish_log_time,
 				false)
 			if e != nil {
-				fmt.Println(fmt.Sprintf("parse_gz_logs.go: main - Failed to parse ind store log from: %s ",  files[i]))
-				services.Logger.Fatalf("parse_gz_logs.go: main - Failed to parse ind store log from: %s ", files[i])
+				fmt.Println(fmt.Sprintf("parse_gz_logs.go: main - Failed to parse ind store log from: %s ", files[i]))
+				s.Logger.Fatalf("parse_gz_logs.go: main - Failed to parse ind store log from: %s ", files[i])
 			}
 			db.Create(&m.GzLog{FileName: files[i]})
-			services.Logger.Printf("parse_gz_logs.go: main - File %s was parsed and stored in DB ", files[i])
+			s.Logger.Printf("parse_gz_logs.go: main - File %s was parsed and stored in DB ", files[i])
 		}
 		fmt.Println(fmt.Sprintf("parse_gz_logs.go: main - Parsed and saved %v files", files_to_handle))
-		services.Logger.Printf("parse_gz_logs.go: main - Parsed and saved %v files", files_to_handle)
+		s.Logger.Printf("parse_gz_logs.go: main - Parsed and saved %v files", files_to_handle)
+		StartEducation()
 		return
 	}
 
 	// single latest log gz file parsing
-	full_file_path, file_name, err := services.GetLatestLogFilePath()
+	full_file_path, file_name, err := s.GetLatestLogFilePath()
 	if err != nil {
 		fmt.Printf("parse_gz_logs.go: main - Getting latest log file failure: %s ", err)
-		services.Logger.Fatalf("parse_gz_logs.go: main - Getting latest log file failure: %s ", err)
+		s.Logger.Fatalf("parse_gz_logs.go: main - Getting latest log file failure: %s ", err)
 		return
 	}
 	println("full_file_path", full_file_path)
 	// store new loaded log
 	db.Create(&m.GzLog{FileName: file_name})
 
-	e := services.ParseAndStoreSingleGzLogInDb(
+	e := s.ParseAndStoreSingleGzLogInDb(
 		full_file_path,
 		true,
 		true,
@@ -129,11 +129,26 @@ func main() {
 
 	if e != nil {
 		fmt.Printf("parse_gz_logs.go: main - Failed to ParseAndStoreSingleGzLogInDb: %s", e)
-		services.Logger.Fatalf("parse_gz_logs.go: main - Failed to ParseAndStoreSingleGzLogInDb: %s", e)
+		s.Logger.Fatalf("parse_gz_logs.go: main - Failed to ParseAndStoreSingleGzLogInDb: %s", e)
 	}
 
 	fmt.Printf("parse_gz_logs.go: main - Successfully parse file: %s ", e)
-	services.Logger.Println("parse_gz_logs.go: main - Successfully parse file: ", file_name)
+	s.Logger.Println("parse_gz_logs.go: main - Successfully parse file: ", file_name)
+
+	StartEducation()
+}
+
+func StartEducation() {
+	start_time := os.Getenv("PARSER_TIME_START")
+	end_time := os.Getenv("PARSER_TIME_END")
+
+	if start_time == "" || end_time == "" {
+		panic("PARSER_TIME_START and PARSER_TIME_END must be set in env file")
+	}
+
+	trimmed_value_data, trimmed_order_data, pair_dict_list := s.PrepareData(helpers.StrToInt64(start_time), helpers.StrToInt64(end_time))
+
+	println(len(trimmed_value_data), len(trimmed_order_data), len(pair_dict_list))
 }
 
 func init() {

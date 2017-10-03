@@ -65,3 +65,4 @@ applog: 2017/10/02 14:27:58 parse_gz_logs.go:104: parse_gz_logs.go: main - File 
 applog: 2017/10/02 14:27:58 parse_gz_logs.go:107: parse_gz_logs.go: main - Parsed and saved 2 files
 applog: 2017/10/02 14:28:40 parse_gz_logs.go:136: parse_gz_logs.go: main - Successfully parse file:  2017-08-19.log.gz
 applog: 2017/10/02 14:30:16 parse_gz_logs.go:136: parse_gz_logs.go: main - Successfully parse file:  2017-08-19.log.gz
+applog: 2017/10/03 04:55:13 parse_gz_logs.go:115: parse_gz_logs.go: main - Getting latest log file failure: File 2017-08-19.log.gz already loaded to DB 

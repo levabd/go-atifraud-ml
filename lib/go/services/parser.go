@@ -244,13 +244,14 @@ func GetLatestLogFilePath() (string, string, error) {
 	}
 }
 
-func PrepareData(start_log_time int64, finish_log_time int64) {
+func PrepareData(
+	start_log_time int64, finish_log_time int64,
+)([]map[string]interface{},[]map[string]interface{}, []map[string]int ){
+
 	trimmed_value_data, trimmed_order_data :=GetTrimmedLodMapsForPeriod(start_log_time, finish_log_time)
 	pair_dict_list := GetPairsDictList(trimmed_order_data)
 
-	println(fmt.Sprintf("trimmed_value_data %v", len(trimmed_value_data)))
-	println(fmt.Sprintf("pair_dict_list len %v", len(pair_dict_list )))
-	//println(fmt.Sprintf("pair_dict_list value %v", pair_dict_list ))
+	return trimmed_value_data, trimmed_order_data, pair_dict_list
 }
 
 func GetTrimmedLodMapsForPeriod(
