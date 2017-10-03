@@ -16,6 +16,8 @@ import (
 var env_is_loaded = false
 var env_is_testing = false
 
+
+
 func IsTesting() bool {
 	if env_is_testing {
 		return true
