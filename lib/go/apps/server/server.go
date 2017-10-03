@@ -33,7 +33,7 @@ func main() {
 }
 
 func requestHandler(ctx *fasthttp.RequestCtx) {
-	if timeCounting{
+	if *timeCounting{
 		defer timeTrack(time.Now(), "requestHandler")
 	}
 
@@ -53,7 +53,7 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 
 	var isCrawler = handleHeader(headerBodyIp, body)
 
-	ctx.Response.SetBodyString(string(isCrawler))
+	ctx.Response.SetBodyString(fmt.Sprintf("%t", isCrawler))
 	ctx.Response.Header.Set("Connection", "keep-alive")
 }
 
@@ -62,6 +62,7 @@ func handleHeader(headerBodyIp []byte, response []byte) bool {
 
 	_, value_data, order_data := handleLogLine(response)
 	_, trimmed_order := trimData(value_data, order_data)
+
 	fmt.Printf("value_data :%+v\n", value_data)
 	fmt.Printf("trimmed_order :%+v\n", trimmed_order)
 
