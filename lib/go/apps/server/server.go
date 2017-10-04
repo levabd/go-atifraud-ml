@@ -15,7 +15,7 @@ import (
 var (
 	addr     = flag.String("addr", "localhost:8082", "Thost:port to listen to")
 	compress = flag.Bool("compress", false, "Whether to enable transparent response compression")
-	timeCounting = flag.Bool("debug", false, "Whether to debug  transparent response compression")
+	debug    = flag.Bool("debug", false, "Whether to debug  transparent response compression")
 )
 
 func main() {
@@ -33,28 +33,34 @@ func main() {
 }
 
 func requestHandler(ctx *fasthttp.RequestCtx) {
-	if *timeCounting{
+	if *debug {
 		defer timeTrack(time.Now(), "requestHandler")
 	}
 
 	if ! ctx.IsPost() {
-		log.Printf("This is must be post request")
+		log.Printf("This is must be post request - will not be handled", )
+		return
 	}
 
 	var body = ctx.PostBody()
 	var headerBodyIp = ctx.Request.Header.Peek("Body-Header-Ip")
-	log.Println(string(headerBodyIp))
-	log.Println(body)
-	log.Println(isJSON(body))
 
-	if len(headerBodyIp) == 0 || len(body) == 0 {
-		log.Println("Post or is empty or `Body-Header-Ip` header was not provided")
+	if len(headerBodyIp) == 0{
+		log.Println("`Body-Header-Ip` header was not provided")
+		return
+	}
+
+	if len(body) == 0 {
+		log.Println("Post body is")
+		return
 	}
 
 	var isCrawler = handleHeader(headerBodyIp, body)
 
-	ctx.Response.SetBodyString(fmt.Sprintf("%t", isCrawler))
+	// todo USE isCrawler
 	ctx.Response.Header.Set("Connection", "keep-alive")
+	ctx.Response.SetBodyString(fmt.Sprintf("%t", isCrawler))
+	log.Printf("Response is %t", isCrawler)
 }
 
 func handleHeader(headerBodyIp []byte, response []byte) bool {
@@ -63,15 +69,15 @@ func handleHeader(headerBodyIp []byte, response []byte) bool {
 	_, value_data, order_data := handleLogLine(response)
 	_, trimmed_order := trimData(value_data, order_data)
 
-	fmt.Printf("value_data :%+v\n", value_data)
-	fmt.Printf("trimmed_order :%+v\n", trimmed_order)
+	//fmt.Printf("value_data :%+v\n", value_data)
+	//fmt.Printf("trimmed_order :%+v\n", trimmed_order)
 
 	pair_dict := s.GetPairDictForHeaders(trimmed_order)
 
-	fmt.Printf("pair_dict :%+v\n", pair_dict)
+	//fmt.Printf("pair_dict :%+v\n", pair_dict)
 
 	// todo make prediction
-	return true
+	return len(pair_dict)>0
 }
 
 func handleLogLine( line []byte) (string, map[string]interface{}, map[string]interface{}) {
@@ -79,6 +85,7 @@ func handleLogLine( line []byte) (string, map[string]interface{}, map[string]int
 		value_row   map[string]interface{} = make(map[string]interface{})
 		ordered_row map[string]interface{} = make(map[string]interface{})
 	)
+
 	if len(line) == 0 || ! isJSON(line) {
 		return "", value_row, ordered_row
 	}
@@ -110,7 +117,6 @@ func trimData(value_data map[string]interface{}, order_data map[string]interface
 func isJSON(s []byte) bool {
 	var js map[string]interface{}
 	return json.Unmarshal(s, &js) == nil
-
 }
 
 func timeTrack(start time.Time, name string) {

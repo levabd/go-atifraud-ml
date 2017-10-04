@@ -19,7 +19,7 @@ func main() {
 
 	var req fasthttp.Request
 	req.Header.SetMethod("POST")
-	req.SetRequestURI("http://localhost:8082/")
+	req.SetRequestURI("http://localhost:8082")
 	req.Header.Set("Host", "localhost")
 	req.Header.Set("Body-Header-Ip", "62.84.44.222")
 	req.SetBodyString(`{"Cache-Control":"no-cache","Connection":"Keep-Alive","Pragma":"no-cache","Accept":"*\/*","Accept-Encoding":"gzip, deflate","From":"bingbot(at)microsoft.com","Host":"www.vypekajem.com","User-Agent":"Mozilla\/5.0 (iPhone; CPU iPhone OS 7_0 like Mac OS X) AppleWebKit\/537.51.1 (KHTML, like Gecko) Version\/7.0 Mobile\/11A465 Safari\/9537.53 (compatible; bingbot\/2.0; +http:\/\/www.bing.com\/bingbot.htm)"}`)
