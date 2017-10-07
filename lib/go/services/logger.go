@@ -14,25 +14,25 @@ var Logger *log.Logger
 func init() {
 	helpers.LoadEnv()
 
-	abs_path, err := filepath.Abs("./.")
+	absPath, err := filepath.Abs("./.")
 	if err != nil {
 		log.Fatal(err)
 		return
 	}
-	var file_path string
+	var filePath string
 
 	if helpers.IsTesting() {
-		file_path = filepath.Join(abs_path, "..", "..", "..",  "data", "logs_go", "filename.log")
+		filePath = filepath.Join(absPath, "..", "..", "..",  "data", "logs_go", "filename.log")
 		fmt.Println("run under go test")
 	} else {
-		file_path = filepath.Join(os.Getenv("APP_ROOT_DIR"), "data", "logs_go", "filename.log")
+		filePath = filepath.Join(os.Getenv("APP_ROOT_DIR"), "data", "logs_go", "filename.log")
 		fmt.Println("normal run")
 	}
 
-	fmt.Println("services.init: path to log file - ", file_path)
-	errorLogFile, err = os.OpenFile(file_path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	fmt.Println("services.init: path to log file - ", filePath)
+	errorLogFile, err = os.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
-		fmt.Printf("error opening file: %s, error: %v", file_path, err)
+		fmt.Printf("error opening file: %s, error: %v", filePath, err)
 		os.Exit(1)
 	}
 

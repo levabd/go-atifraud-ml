@@ -16,6 +16,7 @@ var (
 	addr     = flag.String("addr", "localhost:8082", "Thost:port to listen to")
 	compress = flag.Bool("compress", false, "Whether to enable transparent response compression")
 	debug    = flag.Bool("debug", false, "Whether to debug  transparent response compression")
+	valuesFeaturesOrder = s.LoadFittedValuesFeaturesOrder()
 )
 
 func main() {
@@ -63,55 +64,59 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 	log.Printf("Response is %t", isCrawler)
 }
 
+//noinspection GoUnusedParameter
 func handleHeader(headerBodyIp []byte, response []byte) bool {
 	//defer timeTrack(time.Now(), "handleHeader")
 
-	_, value_data, order_data := handleLogLine(response)
-	_, trimmed_order := trimData(value_data, order_data)
+	mainData, valueData, orderData := handleLogLine(response)
+	trimmedValue, trimmedOrder := trimData(valueData, orderData)
 
 	//fmt.Printf("value_data :%+v\n", value_data)
 	//fmt.Printf("trimmed_order :%+v\n", trimmed_order)
 
-	pair_dict := s.GetPairDictForHeaders(trimmed_order)
+	orderFeatures := s.GetSingleOrderFeatures(trimmedOrder)
+	valueFeatures := s.GetSingleValueFeatures(trimmedValue, valuesFeaturesOrder)
 
-	//fmt.Printf("pair_dict :%+v\n", pair_dict)
+	// todo remove debug
+	fmt.Println(mainData)
+	fmt.Println(len(valueFeatures))
 
 	// todo make prediction
-	return len(pair_dict)>0
+	return len(orderFeatures)>0
 }
 
 func handleLogLine( line []byte) (string, map[string]interface{}, map[string]interface{}) {
 	var (
-		value_row   map[string]interface{} = make(map[string]interface{})
-		ordered_row map[string]interface{} = make(map[string]interface{})
+		valueRow   map[string]interface{} = make(map[string]interface{})
+		orderedRow map[string]interface{} = make(map[string]interface{})
 	)
 
 	if len(line) == 0 || ! isJSON(line) {
-		return "", value_row, ordered_row
+		return "", valueRow, orderedRow
 	}
 
 	i := 0
 	jsonparser.ObjectEach(line, func(key []byte, value []byte, dataType jsonparser.ValueType, offset int) error {
-		ordered_row[ string(key)] = i
-		value_row[ string(key) ] = string(value)
+		orderedRow[ string(key)] = i
+		valueRow[ string(key) ] = string(value)
 		i = i + 1
 		return nil
 	})
 
 	// define crawler in User-Agent
-	if user_agent, ok := value_row["User-Agent"].(string); ok {
-		return user_agent, value_row, ordered_row
+	if userAgent, ok := valueRow["User-Agent"].(string); ok {
+		return userAgent, valueRow, orderedRow
 	} else {
-		return "", value_row, ordered_row
+		return "", valueRow, orderedRow
 	}
 
-	return "", value_row, ordered_row
+	return "", valueRow, orderedRow
 }
 
-func trimData(value_data map[string]interface{}, order_data map[string]interface{}) (map[string]interface{}, map[string]interface{}) {
+func trimData(valueData map[string]interface{}, orderData map[string]interface{}) (map[string]interface{}, map[string]interface{}) {
 
-	var header_model = m.Log{ValueData: value_data, OrderData: order_data}
-	return header_model.TrimValueData(), header_model.TrimOrderData()
+	var headerModel = m.Log{ValueData: valueData, OrderData: orderData}
+	return headerModel.TrimValueData(), headerModel.TrimOrderData()
 }
 
 func isJSON(s []byte) bool {

@@ -45,24 +45,24 @@ func (j *JSONB) Scan(value interface{}) error {
 }
 
 func  (l *Log) TrimOrderData() map[string]interface{} {
-	tmp_row := make(map[string]interface{})
+	tmpRow := make(map[string]interface{})
 	for key, value := range l.OrderData {
 
 		if IsInImportantOrdersKeySet(key){
-			tmp_row[key]=value
+			tmpRow[key]=value
 		}
 	}
-	return tmp_row
+	return tmpRow
 }
 
 func  (l *Log) TrimValueData() map[string]interface{} {
-	tmp_row := make(map[string]interface{})
+	tmpRow := make(map[string]interface{})
 	for key, value := range l.ValueData {
 		if IsInImportantValueKeySet(key){
-			tmp_row[key]=value
+			tmpRow[key]=value
 		}
 	}
-	return tmp_row
+	return tmpRow
 }
 
 func IsInImportantOrdersKeySet(category string) bool {

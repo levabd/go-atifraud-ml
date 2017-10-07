@@ -22,49 +22,49 @@ var instantiated *udger.Udger = nil
 
 func GetUdgerInstance() (*udger.Udger, error) {
 	if instantiated == nil {
-		path_to_udger_db := filepath.Join(os.Getenv("APP_ROOT_DIR"), "data", "db", "udgerdb_v3.dat")
-		println("path_to_udger_db: ", path_to_udger_db)
+		pathToUdgerDb := filepath.Join(os.Getenv("APP_ROOT_DIR"), "data", "db", "udgerdb_v3.dat")
+		println("path_to_udger_db: ", pathToUdgerDb)
 
-		u, err := udger.New(path_to_udger_db)
+		u, err := udger.New(pathToUdgerDb)
 		if err != nil {
 			Logger.Fatalln(err)
-			return nil, err;
+			return nil, err
 		}
-		instantiated = u;
+		instantiated = u
 	}
-	return instantiated, nil;
+	return instantiated, nil
 }
 
-func IsCrawler(client_ip string, client_ua string) bool {
+func IsCrawler(clientIp string, clientUa string) bool {
 
-	ua_class_code,ua_family_code:= IsCrawlerSql(client_ua)
-	is_crawler_by_ua := (IsInBotsUaFamily(strings.ToLower(ua_family_code)) || IsInClassCode(strings.ToLower(ua_class_code)))
+	uaClassCode,uaFamilyCode:= IsCrawlerSql(clientUa)
+	isCrawlerByUa := IsInBotsUaFamily(strings.ToLower(uaFamilyCode)) || IsInClassCode(strings.ToLower(uaClassCode))
 
-	if is_crawler_by_ua || GetIpClassificationCode(client_ip) == "crawler"  {
+	if isCrawlerByUa || GetIpClassificationCode(clientIp) == "crawler"  {
 		return true
 	}
 
 	return false
 }
 
-func GetIpClassificationCode(client_ip string) string {
+func GetIpClassificationCode(clientIp string) string {
 
 	db, err := gorm.Open("sqlite3", os.Getenv("DB_FILE_PATH_UDGER"))
 	if err != nil {
 		Logger.Fatalf("parse_gz_logs.go - main: Failed to connect database: %s", err)
 	}
 	defer db.Close()
-	var ip_classification_code string
-	row:= db.Raw(fmt.Sprintf(`
+	var ipClassificationCode string
+	row := db.Raw(fmt.Sprintf(`
 	SELECT ip_classification_code
 	FROM udger_ip_list
 	JOIN udger_ip_class ON udger_ip_class.id=udger_ip_list.class_id
 	LEFT JOIN udger_crawler_list ON udger_crawler_list.id=udger_ip_list.crawler_id
 	LEFT JOIN udger_crawler_class ON udger_crawler_class.id=udger_crawler_list.class_id
-	WHERE ip = '%s' ORDER BY sequence`, client_ip)).Row()
+	WHERE ip = '%s' ORDER BY sequence`, clientIp)).Row()
 
-	row.Scan(&ip_classification_code)
-	return ip_classification_code
+	row.Scan(&ipClassificationCode)
+	return ipClassificationCode
 }
 
 func IsCrawlerSql(ua string) (string, string){
@@ -75,8 +75,8 @@ func IsCrawlerSql(ua string) (string, string){
 	}
 	defer db.Close()
 
-	crawler_classification_code :=""
-	family_code :=""
+	crawlerClassificationCode :=""
+	familyCode :=""
 
 	row:= db.Raw(fmt.Sprintf(`
 	SELECT
@@ -88,36 +88,36 @@ func IsCrawlerSql(ua string) (string, string){
 	WHERE
 	  ua_string = '%s' `, ua)).Row()
 
-	row.Scan(&crawler_classification_code, &family_code)
+	row.Scan(&crawlerClassificationCode, &familyCode)
 
-	return crawler_classification_code, family_code
+	return crawlerClassificationCode, familyCode
 }
 
-func GetUa( client_ua string) map[string]interface{} {
-	udger, err := GetUdgerInstance()
+func GetUa( clientUa string) map[string]interface{} {
+	udg, err := GetUdgerInstance()
 	if err != nil{
 		panic(err)
 	}
 
-	ua, err:=udger.Lookup(client_ua)
+	ua, err := udg.Lookup(clientUa)
 	if err != nil{
 		panic(err)
 	}
 
-	main_data :=make(map[string]interface{})
-	main_data["ua_family_code"] = strings.ToLower(ua.Browser.Family)
-	main_data["ua_class_code"] = strings.ToLower(ua.Browser.Type)
-	main_data["ua_version"] = strings.ToLower(ua.Browser.Version)
-	main_data["os_family_code"] = strings.ToLower(ua.OS.Family)
-	main_data["os_code"] = strings.Replace(strings.ToLower(ua.OS.Name), " ", "_", -1)
+	mainData := make(map[string]interface{})
+	mainData["ua_family_code"] = strings.ToLower(ua.Browser.Family)
+	mainData["ua_class_code"] = strings.ToLower(ua.Browser.Type)
+	mainData["ua_version"] = strings.ToLower(ua.Browser.Version)
+	mainData["os_family_code"] = strings.ToLower(ua.OS.Family)
+	mainData["os_code"] = strings.Replace(strings.ToLower(ua.OS.Name), " ", "_", -1)
 
 	if ua.Device.Name =="Personal computer"{
-		main_data["device_class_code"] = "desktop"
+		mainData["device_class_code"] = "desktop"
 	} else{
-		main_data["device_class_code"] = strings.Replace(strings.ToLower( ua.Device.Name), " ", "_", -1)
+		mainData["device_class_code"] = strings.Replace(strings.ToLower( ua.Device.Name), " ", "_", -1)
 	}
 
-	return main_data
+	return mainData
 }
 
 func IsInClassCode(category string) bool {

@@ -12,8 +12,9 @@ import (
 )
 
 // private method
-func uaIsBot(brawser_family string) bool {
-	switch brawser_family {
+//noinspection GoUnusedFunction
+func uaIsBot(browserFamily string) bool {
+	switch browserFamily {
 	case
 		// Search engine or antivirus or SEO bots
 		"googlebot",
@@ -123,8 +124,8 @@ func uaIsBot(brawser_family string) bool {
 }
 
 // private method - search by udger
-func IsCrawlerByUdger(client_ip string, client_ua string) bool {
-	cmd := exec.Command("python3", filepath.Join(os.Getenv("APP_ROOT_DIR"),"lib", "python", "isCrawler.py"), client_ip, client_ua)
+func IsCrawlerByUdger(clientIp string, clientUa string) bool {
+	cmd := exec.Command("python3", filepath.Join(os.Getenv("APP_ROOT_DIR"),"lib", "python", "isCrawler.py"), clientIp, clientUa)
 	out, err := cmd.CombinedOutput()
 
 	if err != nil {
@@ -136,19 +137,21 @@ func IsCrawlerByUdger(client_ip string, client_ua string) bool {
 }
 
 // public method - search by go user agent parser
+//noinspection GoUnusedExportedFunction
 func PyIsCrawler(ip string, ua string) bool {
 	var (
 		result bool = false
 	)
 
-	if is_crawler_udger_told := IsCrawlerByUdger(ip, ua); is_crawler_udger_told {
+	if isCrawlerUdgerTold := IsCrawlerByUdger(ip, ua); isCrawlerUdgerTold {
 		result = true
 	}
 	return result
 }
 
-func PyGetUa(client_ua string) map[string]interface{} {
-	cmd := 	exec.Command("python3", filepath.Join(os.Getenv("APP_ROOT_DIR"),"lib", "python", "getUa.py"), client_ua)
+//noinspection GoUnusedExportedFunction
+func PyGetUa(clientUa string) map[string]interface{} {
+	cmd := 	exec.Command("python3", filepath.Join(os.Getenv("APP_ROOT_DIR"),"lib", "python", "getUa.py"), clientUa)
 	cmd.Wait()
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -156,21 +159,21 @@ func PyGetUa(client_ua string) map[string]interface{} {
 		os.Exit(-1)
 	}
 
-	json_to_parse := strings.Replace(string(out), " ", "", -1)
-	json_to_parse = strings.Replace(string(out), "'", "\"", -1)
-	json_to_parse = strings.TrimPrefix(strings.TrimSuffix(json_to_parse, "'"), "'")
+	jsonToParse := strings.Replace(string(out), " ", "", -1)
+	jsonToParse = strings.Replace(string(out), "'", "\"", -1)
+	jsonToParse = strings.TrimPrefix(strings.TrimSuffix(jsonToParse, "'"), "'")
 
-	data := []byte(json_to_parse)
+	data := []byte(jsonToParse)
 	i := 0
-	map_to_return := make(map[string]interface{})
+	mapToReturn := make(map[string]interface{})
 
 	jsonparser.ObjectEach(data, func(key []byte, value []byte, dataType jsonparser.ValueType, offset int) error {
-		map_to_return[ string(key)] = string(value)
+		mapToReturn[ string(key)] = string(value)
 		i = i + 1
 		return nil
 	})
 
-	return map_to_return
+	return mapToReturn
 }
 
 func init() {

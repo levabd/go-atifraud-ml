@@ -13,13 +13,13 @@ import (
 	"flag"
 )
 
-var env_is_loaded = false
-var env_is_testing = false
+var envIsLoaded = false
+var envIsTesting = false
 
 
 
 func IsTesting() bool {
-	if env_is_testing {
+	if envIsTesting {
 		return true
 	}
 
@@ -28,27 +28,27 @@ func IsTesting() bool {
 
 func LoadEnv() error {
 
-	if env_is_loaded {
+	if envIsLoaded {
 		return nil
 	}
 
-	path_to_env, err := filepath.Abs("./.")
+	pathToEnv, err := filepath.Abs("./.")
 	if err != nil {
 		log.Fatal(err)
 		return err
 	}
 
-	if env_is_testing = IsTesting(); env_is_testing {
-		path_to_env = filepath.Join(path_to_env, "..", ".env")
+	if envIsTesting = IsTesting(); envIsTesting {
+		pathToEnv = filepath.Join(pathToEnv, "..", ".env")
 	} else {
-		path_to_env = filepath.Join(path_to_env, "lib", "go", ".env")
+		pathToEnv = filepath.Join(pathToEnv, "lib", "go", ".env")
 	}
-	if _, err := os.Stat(path_to_env); os.IsNotExist(err) {
+	if _, err := os.Stat(pathToEnv); os.IsNotExist(err) {
 		return err
 	}
 
-	godotenv.Load(path_to_env)
-	env_is_loaded = true
+	godotenv.Load(pathToEnv)
+	envIsLoaded = true
 
 	return nil
 }
@@ -125,25 +125,25 @@ func StrToInt(t string) int64 {
 	return i
 }
 
-func GetMapValueByKey(main_row map[string]interface{}, key string) string {
+func GetMapValueByKey(mainRow map[string]interface{}, key string) string {
 
-	if main_row[key] == nil {
+	if mainRow[key] == nil {
 		return ""
 	}
 
-	if main_row[key] == "" {
+	if mainRow[key] == "" {
 		return ""
 	}
 
-	return main_row[key].(string)
+	return mainRow[key].(string)
 }
 
 
-func GetRandomKeyFromMap(_map map[string]interface{}) string {
-	var _key string
-	for _key, _ = range _map {
+func GetRandomKeyFromMap(input map[string]interface{}) string {
+	var key string
+	for key = range input {
 		break
 	}
 
-	return _key
+	return key
 }

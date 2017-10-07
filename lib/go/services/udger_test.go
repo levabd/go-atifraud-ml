@@ -13,7 +13,7 @@ func init() {
 }
 
 func TestUdgerInitiation(t *testing.T) {
-	_assert := assert.New(t)
+	localAssert := assert.New(t)
 
 	u, err := GetUdgerInstance()
 	if err != nil {
@@ -21,9 +21,9 @@ func TestUdgerInitiation(t *testing.T) {
 		os.Exit(-1)
 	}
 
-	_assert.Equal(607, len(u.Browsers), "main_table be 607 in len")
-	_assert.Equal(154, len(u.OS), "value_table be 154 in len")
-	_assert.Equal(8, len(u.Devices), "ordered_table be 7 in len")
+	localAssert.Equal(607, len(u.Browsers), "main_table be 607 in len")
+	localAssert.Equal(154, len(u.OS), "value_table be 154 in len")
+	localAssert.Equal(8, len(u.Devices), "ordered_table be 7 in len")
 }
 
 func TestGetIpClassificationCode(t *testing.T)  {
@@ -31,30 +31,30 @@ func TestGetIpClassificationCode(t *testing.T)  {
 }
 
 func TestIsCrawler(t *testing.T)  {
-	is_crawler := IsCrawler("40.77.167.95", "ua")
-	assert.Equal(t, true, is_crawler)
+	isCrawler := IsCrawler("40.77.167.95", "ua")
+	assert.Equal(t, true, isCrawler)
 
-	is_crawler = IsCrawler("62.84.44.222", "ua")
-	assert.Equal(t, false, is_crawler)
+	isCrawler = IsCrawler("62.84.44.222", "ua")
+	assert.Equal(t, false, isCrawler)
 
-	is_crawler = IsCrawler("62.84.44.222", "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)")
-	assert.Equal(t, true, is_crawler)
+	isCrawler = IsCrawler("62.84.44.222", "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)")
+	assert.Equal(t, true, isCrawler)
 
-	is_crawler = IsCrawler("40.77.167.95", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36")
-	assert.Equal(t, true, is_crawler)
+	isCrawler = IsCrawler("40.77.167.95", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36")
+	assert.Equal(t, true, isCrawler)
 }
 
 func TestIsCrawlerSql(t *testing.T) {
 
-	ua_class_code,ua_family_code:= IsCrawlerSql("Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)")
+	uaClassCode, uaFamilyCode:= IsCrawlerSql("Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)")
 
-	assert.Equal(t, "search_engine_bot", ua_class_code)
-	assert.Equal(t, "googlebot", ua_family_code)
+	assert.Equal(t, "search_engine_bot", uaClassCode)
+	assert.Equal(t, "googlebot", uaFamilyCode)
 
-	ua_class_code, ua_family_code = IsCrawlerSql("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36")
+	uaClassCode, uaFamilyCode = IsCrawlerSql("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36")
 
-	fmt.Println(fmt.Sprintf("ua_class_code %s, ua_family_code %s", ua_class_code, ua_family_code))
+	fmt.Println(fmt.Sprintf("ua_class_code %s, ua_family_code %s", uaClassCode, uaFamilyCode))
 
-	assert.Equal(t, "", ua_class_code)
-	assert.Equal(t, "", ua_family_code)
+	assert.Equal(t, "", uaClassCode)
+	assert.Equal(t, "", uaFamilyCode)
 }

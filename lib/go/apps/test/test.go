@@ -2,8 +2,9 @@ package main
 
 import (
 	"time"
-	"fmt"
 	"log"
+	"fmt"
+
 	"github.com/levabd/go-atifraud-ml/lib/go/services"
 	"github.com/uniplaces/carbon"
 )
@@ -14,12 +15,17 @@ func timeTrack(start time.Time, name string) {
 func main() {
 	defer timeTrack(time.Now(), "maon")
 
-	start_time := time.Now()
-	start_nanosecond := start_time.Nanosecond()
-	println(start_time.Minute(), start_time.Second(), start_nanosecond)
+	startTime := time.Now()
+	startNanosecond := startTime.Nanosecond()
+	println(startTime.Minute(), startTime.Second(), startNanosecond)
 
-	services.PrepareData(carbon.Now().SubMonths(2).Unix(), carbon.Now().Unix())
+	userAgent, valueFeatures, ordersFeatures := services.PrepareData(carbon.Now().SubMonths(2).Unix(), carbon.Now().Unix())
+
+	println(len(userAgent), len(valueFeatures), len(ordersFeatures))
+
+	fmt.Println(len(valueFeatures[0]))
+	fmt.Println(len(ordersFeatures[0]))
 
 	end := time.Now()
-	println(end.Minute(), end.Second(), end.Nanosecond(), end.Nanosecond()-start_nanosecond)
+	println(end.Minute(), end.Second(), end.Nanosecond(), end.Nanosecond() - startNanosecond)
 }

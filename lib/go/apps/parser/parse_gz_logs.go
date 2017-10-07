@@ -20,17 +20,17 @@ func init() {
 
 func needAllFilesParsing(args []string) bool {
 
-	var need_all_file_parsing bool = false
+	var needAllFileParsing bool = false
 
 	if len(args) == 0 || len(args) == 1 {
 		return false
 	}
 
 	if args[1] == "true" {
-		need_all_file_parsing = true
+		needAllFileParsing = true
 	}
 
-	return need_all_file_parsing
+	return needAllFileParsing
 }
 
 // Parse GZ file/files and store data in DB
@@ -51,9 +51,9 @@ func main() {
 		return
 	}
 
-	need_all_file_parsing := needAllFilesParsing(os.Args)
-	start_log_time := helpers.StrToInt64(os.Getenv("PARSER_TIME_START"))
-	finish_log_time := helpers.StrToInt64(os.Getenv("PARSER_TIME_END"))
+	needAllFileParsing := needAllFilesParsing(os.Args)
+	startLogTime := helpers.StrToInt64(os.Getenv("PARSER_TIME_START"))
+	finishLogTime := helpers.StrToInt64(os.Getenv("PARSER_TIME_END"))
 
 	db, err := gorm.Open("postgres", m.GetDBConnectionStr())
 	if err != nil {
@@ -68,32 +68,32 @@ func main() {
 		db.AutoMigrate(&m.Log{})
 	}
 
-	if need_all_file_parsing {
+	if needAllFileParsing {
 
-		logs_dir := filepath.Join(os.Getenv("APP_ROOT_DIR"), "data", "logs")
+		logsDir := filepath.Join(os.Getenv("APP_ROOT_DIR"), "data", "logs")
 
-		files := helpers.GetFileFromDirWithExt(logs_dir, "gz")
-		files_to_handle := len(files)
+		files := helpers.GetFileFromDirWithExt(logsDir, "gz")
+		filesToHandle := len(files)
 
-		for i := 0; i < files_to_handle; i++ {
+		for i := 0; i < filesToHandle; i++ {
 			fmt.Println(fmt.Printf("parse_gz_logs.go: main - File %s name ", files[i]))
 			s.Logger.Printf("parse_gz_logs.go: main - File %s name ", files[i])
 
-			gz_log := m.GzLog{}
-			db.Where("file_name = ?", files[i]).First(&gz_log)
+			gzLog := m.GzLog{}
+			db.Where("file_name = ?", files[i]).First(&gzLog)
 
-			if gz_log.ID != 0 {
+			if gzLog.ID != 0 {
 				fmt.Println(fmt.Printf("File %s already loaded to DB ", files[i]))
 				s.Logger.Printf("File %s already loaded to DB ", files[i])
 				continue
 			}
 
 			e := s.ParseAndStoreSingleGzLogInDb(
-				filepath.Join(logs_dir, files[i]),
+				filepath.Join(logsDir, files[i]),
 				true,
 				true,
-				start_log_time,
-				finish_log_time,
+				startLogTime,
+				finishLogTime,
 				false)
 			if e != nil {
 				fmt.Println(fmt.Sprintf("parse_gz_logs.go: main - Failed to parse ind store log from: %s ", files[i]))
@@ -102,29 +102,29 @@ func main() {
 			db.Create(&m.GzLog{FileName: files[i]})
 			s.Logger.Printf("parse_gz_logs.go: main - File %s was parsed and stored in DB ", files[i])
 		}
-		fmt.Println(fmt.Sprintf("parse_gz_logs.go: main - Parsed and saved %v files", files_to_handle))
-		s.Logger.Printf("parse_gz_logs.go: main - Parsed and saved %v files", files_to_handle)
+		fmt.Println(fmt.Sprintf("parse_gz_logs.go: main - Parsed and saved %v files", filesToHandle))
+		s.Logger.Printf("parse_gz_logs.go: main - Parsed and saved %v files", filesToHandle)
 		StartEducation()
 		return
 	}
 
 	// single latest log gz file parsing
-	full_file_path, file_name, err := s.GetLatestLogFilePath()
+	fullFilePath, fileName, err := s.GetLatestLogFilePath()
 	if err != nil {
 		fmt.Printf("parse_gz_logs.go: main - Getting latest log file failure: %s ", err)
 		s.Logger.Fatalf("parse_gz_logs.go: main - Getting latest log file failure: %s ", err)
 		return
 	}
-	println("full_file_path", full_file_path)
+	println("full_file_path", fullFilePath)
 	// store new loaded log
-	db.Create(&m.GzLog{FileName: file_name})
+	db.Create(&m.GzLog{FileName: fileName})
 
 	e := s.ParseAndStoreSingleGzLogInDb(
-		full_file_path,
+		fullFilePath,
 		true,
 		true,
-		start_log_time,
-		finish_log_time,
+		startLogTime,
+		finishLogTime,
 		false)
 
 	if e != nil {
@@ -133,22 +133,22 @@ func main() {
 	}
 
 	fmt.Printf("parse_gz_logs.go: main - Successfully parse file: %s ", e)
-	s.Logger.Println("parse_gz_logs.go: main - Successfully parse file: ", file_name)
+	s.Logger.Println("parse_gz_logs.go: main - Successfully parse file: ", fileName)
 
 	StartEducation()
 }
 
 func StartEducation() {
-	start_time := os.Getenv("PARSER_TIME_START")
-	end_time := os.Getenv("PARSER_TIME_END")
+	startTime := os.Getenv("PARSER_TIME_START")
+	endTime := os.Getenv("PARSER_TIME_END")
 
-	if start_time == "" || end_time == "" {
+	if startTime == "" || endTime == "" {
 		panic("PARSER_TIME_START and PARSER_TIME_END must be set in env file")
 	}
 
-	trimmed_value_data, trimmed_order_data, pair_dict_list := s.PrepareData(helpers.StrToInt64(start_time), helpers.StrToInt64(end_time))
+	userAgent, valueFeatures, orderFeatures := s.PrepareData(helpers.StrToInt64(startTime), helpers.StrToInt64(endTime))
 
-	println(len(trimmed_value_data), len(trimmed_order_data), len(pair_dict_list))
+	println(len(userAgent), len(valueFeatures), len(orderFeatures))
 }
 
 func init() {
