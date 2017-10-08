@@ -5,9 +5,9 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-func GetValueFeatures(valuesHeadersTable []map[string]interface{}, valuesFeaturesOrder map[string]int) [][]bool {
+func GetValueFeatures(valuesHeadersTable []map[string]interface{}, valuesFeaturesOrder map[string]int) [][]float64 {
 
-	var valueFeatures [][]bool
+	var valueFeatures [][]float64
 
 	for _, valuesHeaders := range valuesHeadersTable {
 		valueFeatures = append(valueFeatures, GetSingleValueFeatures(valuesHeaders, valuesFeaturesOrder))
@@ -16,11 +16,11 @@ func GetValueFeatures(valuesHeadersTable []map[string]interface{}, valuesFeature
 	return valueFeatures
 }
 
-func GetSingleValueFeatures(orderedHeaders map[string]interface{}, valuesFeaturesOrder map[string]int) []bool {
+func GetSingleValueFeatures(valueHeaders map[string]interface{}, valuesFeaturesOrder map[string]int) []float64 {
 
-	valueFeatures := make([]bool, len(valuesFeaturesOrder))
-	for header, value := range orderedHeaders {
-		valueFeatures[valuesFeaturesOrder[header + "=" + typeToStr(value)]] = true
+	valueFeatures := make([]float64, len(valuesFeaturesOrder))
+	for header, value := range valueHeaders {
+		valueFeatures[valuesFeaturesOrder[header + "=" + typeToStr(value)]] = 1.0
 	}
 
 	return valueFeatures
@@ -60,7 +60,6 @@ func FitValuesFeaturesOrder(valuesHeadersTable []map[string]interface{}) map[str
 			FeatureName: featureName,
 			Order: featureOrder,
 		}
-		valuesFeaturesOrder[dbFeature.FeatureName] = dbFeature.Order
 		tx.Create(&dbFeature)
 		tx.Commit()
 	}

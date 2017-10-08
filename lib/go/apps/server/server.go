@@ -17,6 +17,7 @@ var (
 	compress = flag.Bool("compress", false, "Whether to enable transparent response compression")
 	debug    = flag.Bool("debug", false, "Whether to debug  transparent response compression")
 	valuesFeaturesOrder = s.LoadFittedValuesFeaturesOrder()
+	userAgentIntCodes, userAgentFloatCodes = s.LoadFittedUserAgentCodes()
 )
 
 func main() {
@@ -74,15 +75,14 @@ func handleHeader(headerBodyIp []byte, response []byte) bool {
 	//fmt.Printf("value_data :%+v\n", value_data)
 	//fmt.Printf("trimmed_order :%+v\n", trimmed_order)
 
-	orderFeatures := s.GetSingleOrderFeatures(trimmedOrder)
-	valueFeatures := s.GetSingleValueFeatures(trimmedValue, valuesFeaturesOrder)
+	fullFeatures := s.GetSingleFullFeatures(trimmedOrder, trimmedValue, valuesFeaturesOrder)
 
 	// todo remove debug
 	fmt.Println(mainData)
-	fmt.Println(len(valueFeatures))
+	fmt.Println(len(fullFeatures))
 
 	// todo make prediction
-	return len(orderFeatures)>0
+	return len(fullFeatures)>0
 }
 
 func handleLogLine( line []byte) (string, map[string]interface{}, map[string]interface{}) {

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"regexp"
 	"strings"
 	"github.com/buger/jsonparser"
 	"fmt"
@@ -14,6 +15,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"errors"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"gopkg.in/cheggaaa/pb.v1"
 )
 
 func timeIsWrong(logTimestamp string, startLogTime int64, finishLogTime int64,) bool {
@@ -69,8 +71,12 @@ func HandleLogLine(
 			return false, nil, nil, nil
 		}
 
-		jsonToParse := strings.Replace(string(elements[2]), " ", "", -1)
-		jsonToParse = strings.TrimPrefix(strings.TrimSuffix(jsonToParse, ""), "'")
+		// replace all \/ by single /
+		var re = regexp.MustCompile(`(?m)\\/`)
+		var substitution = `/`
+
+		strReplaced:=re.ReplaceAllString(elements[2], substitution)
+		jsonToParse := strings.TrimPrefix(strings.TrimSuffix(strReplaced, ""), "'")
 
 		data := []byte(jsonToParse)
 		i := 0
@@ -92,9 +98,14 @@ func HandleLogLine(
 
 		// define crawler in User-Agent
 		if ua, ok := valueRow["User-Agent"].(string); ok {
+
+			if ua==""{
+				return false, nil, nil, nil
+			}
+
 			if filterCrawlers && IsCrawler(elements[1], ua) {
-				result = false
-				return result, nil, nil, nil
+				//log.Println("ua is crawler: ", elements[1], ua)
+				return false, nil, nil, nil
 			}
 
 			if needUaParsing {
@@ -102,6 +113,7 @@ func HandleLogLine(
 
 				var buffer bytes.Buffer
 				buffer.WriteString(h.GetMapValueByKey(uaObj, "ua_family_code"))
+				buffer.WriteString(" ")
 				buffer.WriteString(h.GetMapValueByKey(uaObj, "ua_version"))
 				mainRow["ua_family_code"] = h.GetMapValueByKey(uaObj, "ua_family_code")
 				mainRow["ua_version"] = buffer.String()
@@ -175,7 +187,10 @@ func ParseAndStoreSingleGzLogInDb(
 	bytesOfString, _ := h.ReadGzFile(filePath)
 	lines := strings.Split(string(bytesOfString), "\n")
 
+	bar := pb.StartNew(len(lines))
+	bar.SetRefreshRate(time.Minute/2)
 	for _, line := range lines {
+		bar.Increment()
 		canBeUsed, mainRow, valueRow, orderedRow := HandleLogLine(
 			line,
 			filterCrawlers,
@@ -208,6 +223,7 @@ func ParseAndStoreSingleGzLogInDb(
 			}
 		}
 	}
+	bar.FinishPrint(fmt.Sprintf("Finish parsing lines in %s", filePath))
 
 	return nil
 }
@@ -244,16 +260,19 @@ func GetLatestLogFilePath() (string, string, error) {
 	}
 }
 
-func PrepareData(
-	startLogTime int64, finishLogTime int64,
-)([]string, [][]bool, [][]bool ){
+func PrepareData(startLogTime int64, finishLogTime int64, )([]int, []float64, [][]float64){
 
-	userAgent, trimmedValueData, trimmedOrderData := GetTrimmedLodMapsForPeriod(startLogTime, finishLogTime)
-	orderFeatures := GetOrderFeatures(trimmedOrderData)
+	userAgentList, trimmedValueData, trimmedOrderData := GetTrimmedLodMapsForPeriod(startLogTime, finishLogTime)
+
 	valuesFeaturesOrder := FitValuesFeaturesOrder(trimmedValueData)
-	valueFeatures := GetValueFeatures(trimmedValueData, valuesFeaturesOrder)
+	fullFeatures := GetFullFeatures(trimmedOrderData, trimmedValueData, valuesFeaturesOrder)
+	//valueFeatures := GetValueFeatures(trimmedValueData, valuesFeaturesOrder)
+	//orderFeatures := GetOrderFeatures(trimmedOrderData)
 
-	return userAgent, valueFeatures, orderFeatures
+	userAgentIntCodes, userAgentFloatCodes := FitUserAgentCodes(userAgentList)
+	intUAClasses, floatUAClasses := GetUAClasses(userAgentList, userAgentIntCodes, userAgentFloatCodes)
+
+	return intUAClasses, floatUAClasses, fullFeatures
 }
 
 func GetTrimmedLodMapsForPeriod(

@@ -9,6 +9,8 @@ import (
 	"log"
 	"github.com/joho/godotenv"
 	"github.com/buger/jsonparser"
+	"github.com/jinzhu/gorm"
+	m "github.com/levabd/go-atifraud-ml/lib/go/models"
 )
 
 // private method
@@ -174,6 +176,99 @@ func PyGetUa(clientUa string) map[string]interface{} {
 	})
 
 	return mapToReturn
+}
+
+func FitUserAgentCodes(userAgentList []string) (map[string]int, map[string]float64) {
+	var (
+		userAgentIntCodes	= map[string]int {}
+		userAgentFloatCodes	= map[string]float64 {}
+		uaCodes				= []m.UACode {}
+	)
+
+	index := 0
+
+	for _, ua := range userAgentList {
+		if _, ok := userAgentIntCodes[ua]; !ok {
+			userAgentIntCodes[ua] = index
+			userAgentFloatCodes[ua] = float64(index)
+			uaCodes = append(uaCodes, m.UACode{
+				UserAgent:	ua,
+				IntCode:	index,
+				FloatCode:	float64(index),
+			})
+			index++
+		}
+	}
+
+	db, err := gorm.Open("postgres", m.GetDBConnectionStr())
+	if err != nil {
+		Logger.Fatalf("user_agent_helpers.go - FitUserAgentCodes: Failed to connect database: %s", err)
+	}
+	defer db.Close()
+	if !db.HasTable(&m.UACode{}) {
+		db.AutoMigrate(&m.UACode{})
+	}
+
+	// Clean last vectoriser
+	db.Exec("TRUNCATE TABLE  ua_codes;")
+
+	// Insert new fitted vectoriser
+	for _, uaCode := range uaCodes {
+		tx := db.Begin()
+		tx.Create(&uaCode)
+		tx.Commit()
+	}
+
+	return userAgentIntCodes, userAgentFloatCodes
+}
+
+func LoadFittedUserAgentCodes() (map[string]int, map[string]float64) {
+	db, err := gorm.Open("postgres", m.GetDBConnectionStr())
+	if err != nil {
+		Logger.Fatalf("user_agent_helpers.go - LoadFittedUserAgentCodes: Failed to connect database: %s", err)
+	}
+	defer db.Close()
+	if !db.HasTable(&m.UACode{}) {
+		db.AutoMigrate(&m.UACode{})
+	}
+
+	var (
+		userAgentIntCodes	= map[string]int {}
+		userAgentFloatCodes	= map[string]float64 {}
+		uaCodes				= []m.UACode {}
+	)
+
+	db.Find(&uaCodes)
+	for _, uaCode := range uaCodes {
+		userAgentIntCodes[uaCode.UserAgent]		= uaCode.IntCode
+		userAgentFloatCodes[uaCode.UserAgent]	= uaCode.FloatCode
+	}
+
+	return userAgentIntCodes, userAgentFloatCodes
+}
+
+func GetUAClasses(userAgentList []string, userAgentIntCodes map[string]int, userAgentFloatCodes map[string]float64) ([]int, []float64) {
+
+	var (
+		intUAClasses	[]int
+		floatUAClasses	[]float64
+	)
+
+	for _, userAgent := range userAgentList {
+		intUAClasses	= append(intUAClasses, userAgentIntCodes[userAgent])
+		floatUAClasses	= append(floatUAClasses, userAgentFloatCodes[userAgent])
+	}
+
+	return intUAClasses, floatUAClasses
+}
+
+//noinspection GoUnusedExportedFunction
+func GetSingleUAClass(userAgent string, userAgentIntCodes map[string]int, userAgentFloatCodes map[string]float64) (int, float64) {
+
+	intUAClass		:= userAgentIntCodes[userAgent]
+	floatUAClass	:= userAgentFloatCodes[userAgent]
+
+	return intUAClass, floatUAClass
 }
 
 func init() {

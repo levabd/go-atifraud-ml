@@ -75,7 +75,9 @@ func main() {
 		files := helpers.GetFileFromDirWithExt(logsDir, "gz")
 		filesToHandle := len(files)
 
+
 		for i := 0; i < filesToHandle; i++ {
+
 			fmt.Println(fmt.Printf("parse_gz_logs.go: main - File %s name ", files[i]))
 			s.Logger.Printf("parse_gz_logs.go: main - File %s name ", files[i])
 
@@ -102,6 +104,7 @@ func main() {
 			db.Create(&m.GzLog{FileName: files[i]})
 			s.Logger.Printf("parse_gz_logs.go: main - File %s was parsed and stored in DB ", files[i])
 		}
+
 		fmt.Println(fmt.Sprintf("parse_gz_logs.go: main - Parsed and saved %v files", filesToHandle))
 		s.Logger.Printf("parse_gz_logs.go: main - Parsed and saved %v files", filesToHandle)
 		StartEducation()
@@ -146,9 +149,9 @@ func StartEducation() {
 		panic("PARSER_TIME_START and PARSER_TIME_END must be set in env file")
 	}
 
-	userAgent, valueFeatures, orderFeatures := s.PrepareData(helpers.StrToInt64(startTime), helpers.StrToInt64(endTime))
+	intUAClasses, floatUAClasses, fullFeatures := s.PrepareData(helpers.StrToInt64(startTime), helpers.StrToInt64(endTime))
 
-	println(len(userAgent), len(valueFeatures), len(orderFeatures))
+	println(len(intUAClasses), len(floatUAClasses), len(fullFeatures))
 }
 
 func init() {

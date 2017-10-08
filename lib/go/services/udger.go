@@ -9,6 +9,7 @@ import (
 	"strings"
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
+	"log"
 )
 
 func init() {
@@ -23,7 +24,7 @@ var instantiated *udger.Udger = nil
 func GetUdgerInstance() (*udger.Udger, error) {
 	if instantiated == nil {
 		pathToUdgerDb := filepath.Join(os.Getenv("APP_ROOT_DIR"), "data", "db", "udgerdb_v3.dat")
-		println("path_to_udger_db: ", pathToUdgerDb)
+		log.Println("path_to_udger_db: ", pathToUdgerDb)
 
 		u, err := udger.New(pathToUdgerDb)
 		if err != nil {
@@ -37,10 +38,12 @@ func GetUdgerInstance() (*udger.Udger, error) {
 
 func IsCrawler(clientIp string, clientUa string) bool {
 
+	isBotByUaString:= UaContainsCrawler(clientUa)
+
 	uaClassCode,uaFamilyCode:= IsCrawlerSql(clientUa)
 	isCrawlerByUa := IsInBotsUaFamily(strings.ToLower(uaFamilyCode)) || IsInClassCode(strings.ToLower(uaClassCode))
 
-	if isCrawlerByUa || GetIpClassificationCode(clientIp) == "crawler"  {
+	if isBotByUaString || isCrawlerByUa || GetIpClassificationCode(clientIp) == "crawler"  {
 		return true
 	}
 
@@ -62,8 +65,8 @@ func GetIpClassificationCode(clientIp string) string {
 	LEFT JOIN udger_crawler_list ON udger_crawler_list.id=udger_ip_list.crawler_id
 	LEFT JOIN udger_crawler_class ON udger_crawler_class.id=udger_crawler_list.class_id
 	WHERE ip = '%s' ORDER BY sequence`, clientIp)).Row()
-
 	row.Scan(&ipClassificationCode)
+
 	return ipClassificationCode
 }
 
@@ -80,7 +83,7 @@ func IsCrawlerSql(ua string) (string, string){
 
 	row:= db.Raw(fmt.Sprintf(`
 	SELECT
-	 crawler_classification_code, family_code
+	 crawler_classification_code, family_code,
 	FROM
 	  udger_crawler_list
 	  LEFT JOIN
@@ -229,7 +232,6 @@ func IsInBotsUaFamily(category string) bool {
 		"poe-component-client-http",
 		"joc_web_spider",
 
-
 		"elinks",
 		"links",
 		"lynx":
@@ -237,3 +239,42 @@ func IsInBotsUaFamily(category string) bool {
 	}
 	return false
 }
+
+
+
+var crawlerWords = []string{
+	"CodeGator",
+	"spbot",
+	"Barkrowler",
+	"HybridBot",
+	"MoodleBot",
+	"www.ru",
+	"Java",
+	"Googlebot",
+	"ia_archiver",
+	"Mediapartners-Google",
+	"OpenLinkProfiler.org/bot",
+	"www.proximic.com/info/spider",
+	"top100.rambler.ru crawler",
+	"YandexBot",
+	"Bot",
+	"bot",
+	"crawler",
+	"Crawler",
+	"Magic Browser",
+	"Microsoft Office Protocol Discovery",
+	"Microsoft Office Word 2014",
+
+}
+
+func UaContainsCrawler(s string)bool  {
+	for _, b := range crawlerWords {
+		if b==s || strings.Contains( s, b) || strings.HasPrefix( s, b)|| strings.HasSuffix( s, b){
+			//log.Println("Contain crawler: ", s)
+			return true
+		}
+	}
+	return false
+}
+
+

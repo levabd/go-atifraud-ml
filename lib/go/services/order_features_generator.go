@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-var (orderPairsFeaturesOrder = map[string]int {
+var (OrderPairsFeaturesOrder = map[string]int {
 	"Accept < Accept-Encoding": 0,
 	"Accept < Connection": 1,
 	"Accept < From": 2,
@@ -59,9 +59,9 @@ var (orderPairsFeaturesOrder = map[string]int {
 	"User-Agent < Upgrade-Insecure-Requests": 48,
 })
 
-func GetOrderFeatures(orderedHeadersTable []map[string]interface{}) [][]bool {
+func GetOrderFeatures(orderedHeadersTable []map[string]interface{}) [][]float64 {
 
-	var orderFeatures [][]bool
+	var orderFeatures [][]float64
 
 	for _, orderedHeaders := range orderedHeadersTable {
 		orderFeatures = append(orderFeatures, GetSingleOrderFeatures(orderedHeaders))
@@ -70,11 +70,11 @@ func GetOrderFeatures(orderedHeadersTable []map[string]interface{}) [][]bool {
 	return orderFeatures
 }
 
-func GetSingleOrderFeatures(orderedHeaders map[string]interface{}) []bool {
+func GetSingleOrderFeatures(orderedHeaders map[string]interface{}) []float64 {
 
-	orderFeatures := make([]bool, len(orderPairsFeaturesOrder))
+	orderFeatures := make([]float64, len(OrderPairsFeaturesOrder))
 	for combination := range GenerateCombinationsMap(orderedHeaders) {
-		orderFeatures[orderPairsFeaturesOrder[DefineKeyFoPair(combination)]] = true
+		orderFeatures[OrderPairsFeaturesOrder[DefineKeyFoPair(combination)]] = 1.0
 	}
 	return orderFeatures
 }
