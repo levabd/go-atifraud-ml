@@ -75,8 +75,8 @@ func HandleLogLine(
 		var re = regexp.MustCompile(`(?m)\\/`)
 		var substitution = `/`
 
-		strReplaced:=re.ReplaceAllString(elements[2], substitution)
-		jsonToParse := strings.TrimPrefix(strings.TrimSuffix(strReplaced, ""), "'")
+		str_replaced:=re.ReplaceAllString(elements[2], substitution)
+		jsonToParse := strings.TrimPrefix(strings.TrimSuffix(str_replaced, ""), "'")
 
 		data := []byte(jsonToParse)
 		i := 0
@@ -91,7 +91,7 @@ func HandleLogLine(
 			return nil
 		})
 
-		if valueRow["User-Agent"] ==nil{
+		if valueRow["User-Agent"] == nil {
 			Logger.Printf("parsers.ParseAndStoreSingleGzLogInDb: No user agent in header %s ", jsonToParse)
 			return false, nil, nil, nil
 		}
@@ -108,8 +108,14 @@ func HandleLogLine(
 				return false, nil, nil, nil
 			}
 
+
 			if needUaParsing {
+
 				uaObj := GetUa(ua)
+
+				if h.GetMapValueByKey(uaObj, "ua_family_code")== "" || h.GetMapValueByKey(uaObj, "os_family_code")==""{
+					return false, nil, nil, nil
+				}
 
 				var buffer bytes.Buffer
 				buffer.WriteString(h.GetMapValueByKey(uaObj, "ua_family_code"))
@@ -188,7 +194,9 @@ func ParseAndStoreSingleGzLogInDb(
 	lines := strings.Split(string(bytesOfString), "\n")
 
 	bar := pb.StartNew(len(lines))
-	bar.SetRefreshRate(time.Minute/2)
+	bar.SetRefreshRate(time.Second)
+
+	tx := db.Begin()
 	for _, line := range lines {
 		bar.Increment()
 		canBeUsed, mainRow, valueRow, orderedRow := HandleLogLine(
@@ -199,7 +207,6 @@ func ParseAndStoreSingleGzLogInDb(
 			finishLogTime)
 
 		if canBeUsed {
-			tx := db.Begin()
 			log := m.Log{
 				Timestamp: h.UnixTimestampStrToTime(h.GetMapValueByKey(mainRow, "timestamp")),
 				Ip:        h.GetMapValueByKey(mainRow, "ip", ),
@@ -216,13 +223,15 @@ func ParseAndStoreSingleGzLogInDb(
 				OrderData: orderedRow,
 			}
 			tx.Create(&log)
-			if doRoolback {
-				tx.Rollback()
-			} else {
-				tx.Commit()
-			}
 		}
 	}
+
+	if doRoolback {
+		tx.Rollback()
+	} else {
+		tx.Commit()
+	}
+
 	bar.FinishPrint(fmt.Sprintf("Finish parsing lines in %s", filePath))
 
 	return nil
@@ -242,7 +251,7 @@ func GetLatestLogFilePath() (string, string, error) {
 		fileName := files[len(files)-1]
 		db, err := gorm.Open("postgres", m.GetDBConnectionStr())
 		if err != nil {
-			Logger.Fatalf("parse_gz_logs.go - main: Failed to connect database: %s", err)
+			Logger.Fatalf("parser.go - main: Failed to connect database: %s", err)
 		}
 		defer db.Close()
 		if !db.HasTable(&m.GzLog{}) {
@@ -264,10 +273,11 @@ func PrepareData(startLogTime int64, finishLogTime int64, )([]int, []float64, []
 
 	userAgentList, trimmedValueData, trimmedOrderData := GetTrimmedLodMapsForPeriod(startLogTime, finishLogTime)
 
+	//orderFeatures := GetOrderFeatures(trimmedOrderData)
+	//valueFeatures := GetValueFeatures(trimmedValueData, valuesFeaturesOrder)
+
 	valuesFeaturesOrder := FitValuesFeaturesOrder(trimmedValueData)
 	fullFeatures := GetFullFeatures(trimmedOrderData, trimmedValueData, valuesFeaturesOrder)
-	//valueFeatures := GetValueFeatures(trimmedValueData, valuesFeaturesOrder)
-	//orderFeatures := GetOrderFeatures(trimmedOrderData)
 
 	userAgentIntCodes, userAgentFloatCodes := FitUserAgentCodes(userAgentList)
 	intUAClasses, floatUAClasses := GetUAClasses(userAgentList, userAgentIntCodes, userAgentFloatCodes)

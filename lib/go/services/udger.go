@@ -38,9 +38,9 @@ func GetUdgerInstance() (*udger.Udger, error) {
 
 func IsCrawler(clientIp string, clientUa string) bool {
 
-	isBotByUaString:= UaContainsCrawler(clientUa)
+	uaClassCode, uaFamilyCode := IsCrawlerSql(clientUa)
 
-	uaClassCode,uaFamilyCode:= IsCrawlerSql(clientUa)
+	isBotByUaString := UaContainsCrawler(clientUa)
 	isCrawlerByUa := IsInBotsUaFamily(strings.ToLower(uaFamilyCode)) || IsInClassCode(strings.ToLower(uaClassCode))
 
 	if isBotByUaString || isCrawlerByUa || GetIpClassificationCode(clientIp) == "crawler"  {
@@ -264,7 +264,10 @@ var crawlerWords = []string{
 	"Magic Browser",
 	"Microsoft Office Protocol Discovery",
 	"Microsoft Office Word 2014",
-
+	"Spider",
+	"spider",
+	"scraper",
+	"Scraper",
 }
 
 func UaContainsCrawler(s string)bool  {

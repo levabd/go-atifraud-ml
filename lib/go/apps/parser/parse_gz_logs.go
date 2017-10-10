@@ -9,6 +9,7 @@ import (
 	s "github.com/levabd/go-atifraud-ml/lib/go/services"
 	m "github.com/levabd/go-atifraud-ml/lib/go/models"
 	"fmt"
+	"log"
 )
 
 func init() {
@@ -61,31 +62,25 @@ func main() {
 		s.Logger.Fatalf("parse_gz_logs.go: main - Failed to connect database: %s ", err)
 	}
 
-	if !db.HasTable(&m.GzLog{}) {
-		db.AutoMigrate(&m.GzLog{})
-	}
-	if !db.HasTable(&m.Log{}) {
-		db.AutoMigrate(&m.Log{})
-	}
+	if !db.HasTable(&m.GzLog{}) {db.AutoMigrate(&m.GzLog{})}
+	if !db.HasTable(&m.Log{}) {db.AutoMigrate(&m.Log{})}
 
 	if needAllFileParsing {
 
 		logsDir := filepath.Join(os.Getenv("APP_ROOT_DIR"), "data", "logs")
-
 		files := helpers.GetFileFromDirWithExt(logsDir, "gz")
 		filesToHandle := len(files)
 
-
 		for i := 0; i < filesToHandle; i++ {
 
-			fmt.Println(fmt.Printf("parse_gz_logs.go: main - File %s name ", files[i]))
+			log.Println(fmt.Sprintf("parse_gz_logs.go: main - Handle file with name %s", files[i]))
 			s.Logger.Printf("parse_gz_logs.go: main - File %s name ", files[i])
 
 			gzLog := m.GzLog{}
 			db.Where("file_name = ?", files[i]).First(&gzLog)
 
 			if gzLog.ID != 0 {
-				fmt.Println(fmt.Printf("File %s already loaded to DB ", files[i]))
+				log.Println(fmt.Printf("File %s already loaded to DB ", files[i]))
 				s.Logger.Printf("File %s already loaded to DB ", files[i])
 				continue
 			}
@@ -97,8 +92,9 @@ func main() {
 				startLogTime,
 				finishLogTime,
 				false)
+
 			if e != nil {
-				fmt.Println(fmt.Sprintf("parse_gz_logs.go: main - Failed to parse ind store log from: %s ", files[i]))
+				log.Println(fmt.Sprintf("parse_gz_logs.go: main - Failed to parse ind store log from: %s ", files[i]))
 				s.Logger.Fatalf("parse_gz_logs.go: main - Failed to parse ind store log from: %s ", files[i])
 			}
 			db.Create(&m.GzLog{FileName: files[i]})
@@ -149,9 +145,9 @@ func StartEducation() {
 		panic("PARSER_TIME_START and PARSER_TIME_END must be set in env file")
 	}
 
-	intUAClasses, floatUAClasses, fullFeatures := s.PrepareData(helpers.StrToInt64(startTime), helpers.StrToInt64(endTime))
+	_, floatUAClasses, fullFeatures := s.PrepareData(helpers.StrToInt64(startTime), helpers.StrToInt64(endTime))
 
-	println(len(intUAClasses), len(floatUAClasses), len(fullFeatures))
+	println(len(floatUAClasses), len(fullFeatures))
 }
 
 func init() {
