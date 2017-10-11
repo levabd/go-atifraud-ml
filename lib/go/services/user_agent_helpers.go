@@ -247,6 +247,49 @@ func LoadFittedUserAgentCodes() (map[string]int, map[string]float64) {
 	return userAgentIntCodes, userAgentFloatCodes
 }
 
+func LoadFittedUserAgentDeCoder() map[int]string{
+	db, err := gorm.Open("postgres", m.GetDBConnectionStr())
+	if err != nil {
+		Logger.Fatalf("user_agent_helpers.go - LoadFittedUserAgentCodes: Failed to connect database: %s", err)
+	}
+	defer db.Close()
+	if !db.HasTable(&m.UACode{}) {
+		db.AutoMigrate(&m.UACode{})
+	}
+
+	var (
+		userAgentStrings	= map[int]string {}
+		uaCodes				= []m.UACode {}
+	)
+
+	db.Find(&uaCodes)
+	for _, uaCode := range uaCodes {
+		userAgentStrings[uaCode.IntCode] = uaCode.UserAgent
+	}
+
+	return userAgentStrings
+}
+
+//noinspection GoUnusedExportedFunction
+func GetUAClassesOneVsRest(userAgentList []string, userAgentIntCodes map[string]int, userAgentFloatCodes map[string]float64) ([][]int, [][]float64) {
+
+	var (
+		intUAClasses	[][]int
+		floatUAClasses	[][]float64
+	)
+
+	for _, userAgent := range userAgentList {
+		intUAClass := make([]int, len(userAgentIntCodes))
+		floatUAClass := make([]float64, len(userAgentIntCodes))
+		floatUAClass[userAgentIntCodes[userAgent]]	= 1.0
+		intUAClass[userAgentIntCodes[userAgent]]	= 1
+		intUAClasses	= append(intUAClasses, intUAClass)
+		floatUAClasses	= append(floatUAClasses, floatUAClass)
+	}
+
+	return intUAClasses, floatUAClasses
+}
+
 func GetUAClasses(userAgentList []string, userAgentIntCodes map[string]int, userAgentFloatCodes map[string]float64) ([]int, []float64) {
 
 	var (

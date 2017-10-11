@@ -18,6 +18,7 @@ var (
 	debug    = flag.Bool("debug", false, "Whether to debug  transparent response compression")
 	valuesFeaturesOrder = s.LoadFittedValuesFeaturesOrder()
 	userAgentIntCodes, userAgentFloatCodes = s.LoadFittedUserAgentCodes()
+	userAgentStrings = s.LoadFittedUserAgentDeCoder()
 )
 
 func main() {

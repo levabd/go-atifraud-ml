@@ -15,10 +15,17 @@ import (
 	b "github.com/cdipaolo/goml/base"
 	"github.com/cdipaolo/goml/linear"
 
+	// Golinear
+	"github.com/danieldk/golinear"
+
+	// Go_ml
+	"github.com/alonsovidales/go_ml"
+
 	"github.com/levabd/go-atifraud-ml/lib/go/services"
 	"github.com/uniplaces/carbon"
 	"strconv"
 	"io/ioutil"
+	"runtime"
 )
 
 func timeTrack(start time.Time, name string) {
@@ -27,6 +34,11 @@ func timeTrack(start time.Time, name string) {
 }
 
 func main() {
+
+	numCPU := runtime.NumCPU()
+	fmt.Println("NumCPU", numCPU)
+	runtime.GOMAXPROCS(numCPU)
+
 	defer timeTrack(time.Now(), "main")
 
 	startTime := time.Now()
@@ -35,20 +47,79 @@ func main() {
 
 	_, floatUAClasses, fullFeatures := services.PrepareData(carbon.Now().SubMonths(2).Unix(), carbon.Now().Unix())
 
-	println(len(floatUAClasses), len(fullFeatures))
+	println(len(fullFeatures))
 
 	fmt.Println(len(fullFeatures[0]))
 	fmt.Println(fullFeatures[0])
 
-	_, userAgentFloatCodes := services.LoadFittedUserAgentCodes()
+	// _, userAgentFloatCodes := services.LoadFittedUserAgentCodes()
 	// valuesFeaturesOrder := services.LoadFittedValuesFeaturesOrder()
 	// tryGolearn(fullFeatures, valuesFeaturesOrder, floatUAClasses, userAgentFloatCodes)
-	tryGoml(fullFeatures, floatUAClasses, userAgentFloatCodes, 0.1)
+
+	// tryGoml(fullFeatures, floatUAClasses, userAgentFloatCodes, 0.1)
+
+	userAgentStrings := services.LoadFittedUserAgentDeCoder()
+	// tryGolinear(fullFeatures, floatUAClasses, userAgentStrings)
+
+	tryGoMl(fullFeatures, floatUAClasses, userAgentStrings)
 
 	end := time.Now()
 	println(end.Minute(), end.Second(), end.Nanosecond(), end.Nanosecond() - startNanosecond)
 }
 
+//noinspection GoUnusedFunction,GoUnusedParameter
+func tryGoMl(fullFeatures [][]float64, floatUAClasses []float64, userAgentStrings map[int]string) {
+	fmt.Println(userAgentStrings[int(floatUAClasses[0])])
+
+	data := &ml.Regression{
+		X: fullFeatures,
+		Y: floatUAClasses,
+		LinearReg: false,
+	}
+
+	data.InitializeTheta()
+
+	ml.Fmincg(data, 0.0, 10, true)
+	_, _, _ = data.CostFunction(0.0, false)
+
+	h := data.LogisticHipotesis(fullFeatures[0])
+
+	fmt.Println(userAgentStrings[int(h)])
+
+
+}
+
+//noinspection GoUnusedFunction,GoUnusedParameter
+func tryGolinear(fullFeatures [][]float64, floatUAClasses []float64, userAgentStrings map[int]string) {
+	fmt.Println(userAgentStrings[int(floatUAClasses[0])])
+
+	problem := golinear.NewProblem()
+
+	for row, rowFeatures := range fullFeatures {
+		problem.Add(golinear.TrainingInstance{floatUAClasses[row], golinear.FromDenseVector(rowFeatures)})
+	}
+
+	param := golinear.Parameters{golinear.NewL2RLogisticRegressionDefault(), 1, nil, 4}
+	model, err := golinear.TrainModel(param, problem)
+	if err != nil {
+		fmt.Println("Could not train the model: " + err.Error())
+	}
+
+	label := model.Predict(golinear.FromDenseVector(fullFeatures[0]))
+
+	fmt.Println(userAgentStrings[int(label)])
+
+	label, labelProbas, err := model.PredictProbability(golinear.FromDenseVector(fullFeatures[0]))
+
+	if err != nil {
+		fmt.Println("Could not predict proba: " + err.Error())
+	}
+
+	fmt.Println(label)
+	fmt.Println(labelProbas)
+}
+
+//noinspection GoUnusedFunction,GoUnusedParameter
 func tryGoml(fullFeatures [][]float64, floatUAClasses []float64, userAgentFloatCodes map[string]float64, decisionBoundary float64) {
 
 	classNumbers := len(userAgentFloatCodes)
