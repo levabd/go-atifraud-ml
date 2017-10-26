@@ -41,10 +41,12 @@ cdef predict(request):
 
     return request.Response(text=json.dumps(results))
 
-cdef reload_model():
-    print("reload")
+cdef reload_model(request):
     smart_clf_features_column_length = int(r.get("smart_clf_features_column_length"))
     smart_clf = pickle.loads(r.get("smart_clf_browser"))
+    print("Model was reloaded")
+    print("smart_clf_features_column_length is", smart_clf_features_column_length)
+    return request.Response(text="reloaded")
 
 app = Application()
 app.router.add_route('/', predict)

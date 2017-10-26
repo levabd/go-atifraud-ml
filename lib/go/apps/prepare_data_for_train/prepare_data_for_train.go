@@ -2,68 +2,21 @@ package main
 
 import (
 	"time"
-	"log"
-	"fmt"
-	//"github.com/levabd/go-atifraud-ml/lib/go/services"
-	"runtime"
 	"github.com/jinzhu/gorm"
 	"github.com/levabd/go-atifraud-ml/lib/go/models"
 	"gopkg.in/cheggaaa/pb.v1"
 	"sync"
-	//"os"
-	"github.com/levabd/go-atifraud-ml/lib/go/udger"
 	"github.com/levabd/go-atifraud-ml/lib/go/services"
-	"os"
 	"github.com/uniplaces/carbon"
 )
 
-var (
-	udger_instance *udger.Udger = nil
-)
-
 func main() {
-	u, err := udger.New(os.Getenv("DB_FILE_PATH_UDGER"))
-	if err != nil {
-		log.Fatalf("server.go - init: Failed to initiate udger helper: %s", err)
-	}
-
-	udger_instance = u
-
-	numCPU := runtime.NumCPU()
-	fmt.Println("NumCPU", numCPU)
-	runtime.GOMAXPROCS(numCPU)
-
-	//fmt.Println("ddd %+v ", fmt.Sprintf(strings.Join(strings.SplitN("56.0.1750.154",".", 2)[:2], ".")))
-	//fmt.Println("ddd %+v ", strings.SplitN("56.0.1750.154",".", 4)[:3])
-
-	//println(startTime.Minute(), startTime.Second(), startNanosecond)
-
-	// ver all
-	//from 1505399120 to 1502236800 - 425493 records (shape - 3564)
-	//from 1505399120 to 1507802544 - 178439 records (shape - 2421)
-	//from 1505399120 to 1505808000 - 120074 records (shape - 2073)
-
-	// ver 00.00
-	//from 1505399120 to 1505808000 - 119992 records (shape - 1274)
-	//from 1502150400 to 1507802544 ~ 240000 records (shape - 1274)
-	//from 1502150400 to 1507075200 - 481843 records (shape - 2073)
-
-	//PrepareData: after GetTrimmedLodMapsForPeriod. len(uaVersionList):  54057
-	//PrepareData: after FitValuesFeaturesOrder. len(valuesFeaturesOrder):  165
-	// 1502150400 - 1503082800 - 60 000
-	// 1502150400 - 1503360000 - 80 000
-	// 1502150400 - 1504051200 - 100 000
-	// 1502150400 - 1504328400 - 120 000
-
-	// 1502150400 - 1505304000 - 240 000
-	// 1502150400 - 1507093200 - 480 000
 	start, _ := carbon.Create(2017, 8,28,0,0,0,0,"Asia/Almaty")
 	end, _ := carbon.Create(2017, 9,7,23,0,0,0,"Asia/Almaty")
 
-	auVersionIntCodes, _, _, intFullFeatures, familyCodesList, logIds := services.PrepareDataUaVersion(
+	auVersionIntCodes, _, _, intFullFeatures, familyCodesList, logIds := services.PrepareDataUaFamilyCode(
 		start.Unix(),
 		end.Unix(),
-		udger_instance,
 	)
 
 	storePreparedData(intFullFeatures, auVersionIntCodes, familyCodesList, logIds)

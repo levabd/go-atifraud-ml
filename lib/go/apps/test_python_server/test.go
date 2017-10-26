@@ -22,6 +22,48 @@ var (
 	threshold = 0.03
 )
 
+// To correctly perform this test you need:
+// -------------------------------------------------------------------------------
+// 1 - decide what education sample will be (for example 100 000 or 90 000)
+// 2 - find rows which make this sample (our sample - 90 000) in DB:
+//     example of queries (different periods of time - windows):
+//     SELECT count(*)
+//     FROM logs
+//     -- where timestamp > '2017-08-08 00:00:00' and timestamp < '2017-08-28 15:00:00' - education(train) sample
+//     -- where timestamp > '2017-08-28 15:00:00' and timestamp < '2017-09-02 08:00:00' - sample of bots
+//     -- where timestamp > '2017-09-02 08:00:00' and timestamp < '2017-09-09 08:00:00' - sample of human
+//
+//     -- where timestamp > '2017-08-28 00:00:00' and timestamp < '2017-09-07 23:00:00' - education(train) sample
+//     -- where timestamp > '2017-09-07 23:00:00' and timestamp < '2017-09-10 23:00:00' - sample of bots
+//     -- where timestamp > '2017-09-10 23:00:00' and timestamp < '2017-09-13 10:00:00' - sample of human
+//
+//     -- where timestamp > '2017-09-07 23:00:00' and timestamp < '2017-09-15 14:00:00' - education(train) sample
+//     -- where timestamp > '2017-09-15 14:00:00' and timestamp < '2017-09-18 12:00:00' - sample of bots
+//     -- where timestamp > '2017-09-18 12:00:00' and timestamp < '2017-09-20 17:00:00' - sample of human
+//
+//     -- where timestamp > '2017-09-15 14:00:00' and timestamp < '2017-09-23 08:00:00' - education(train) sample
+//     -- where timestamp > '2017-09-23 08:00:00' and timestamp < '2017-09-26 00:00:00' - sample of bots
+//     -- where timestamp > '2017-09-26 00:00:00' and timestamp < '2017-09-28 17:00:00' - sample of human
+//
+//     -- where timestamp > '2017-09-23 08:00:00' and timestamp < '2017-10-01 14:00:00' - education(train) sample
+//     -- where timestamp > '2017-10-01 14:00:00' and timestamp < '2017-10-03 22:00:00' - sample of bots
+//     -- where timestamp > '2017-10-03 22:00:00' and timestamp < '2017-10-06 13:00:00' - sample of human
+//
+// 3 - Change lib/go/apps/prepare_data_for_train/prepare_data_for_train.go:36 by setting one of the needed period (in our case - education(train) sample, see above in query example)
+// 4 - Run lib/go/apps/prepare_data_for_train/prepare_data_for_train.go
+//     go run lib/go/apps/prepare_data_for_train/prepare_data_for_train.go
+//
+// 5 - Restart prediction_server (lib/python/prediction_server) - to reload model
+// 6 - Change lib/go/apps/prepare_data_for_test/prepare_data_for_test.go:44 by setting one of the needed period (in our case - sample of bots, see above in query example)
+// 7 - Run lib/go/apps/prepare_data_for_test/prepare_data_for_test.go - bots will be generated
+//     go run lib/go/apps/prepare_data_for_test/prepare_data_for_test.go
+// 8 - Change this file (lib/go/apps/test_python_server/test.go:92) by setting one of the needed period (in our case - sample of human, see above in query example)
+// 9 - Run lib/go/apps/test_python_server/test.go
+//     go run lib/go/apps/test_python_server/test.go
+//
+// 10- Analise the results
+
+
 func main() {
 	db, err := gorm.Open("postgres", models.GetDBConnectionStr())
 	if err != nil {
@@ -79,32 +121,20 @@ func handleHeader(response []byte, uaFamilyCode string ) string {
 		return "unknown_no_user_agent"
 	}
 
-	//start:= time.Now()
 	trimmedValue, trimmedOrder := trimData(valueData, orderData)
 	fullFeatures := services.GetSingleFullFeatures(trimmedOrder, trimmedValue, valuesFeaturesOrder)
 
 	// transform to sparse matrix
-	var sparseArray []string
-	for index_column, value := range fullFeatures {
-		if value == 1 {
-			sparseArray = append(sparseArray, fmt.Sprintf("%v", index_column))
-		}
-	}
+	featuresSparseMatrix := getSparseMatrix(fullFeatures)
 
-	var predictionResults []map[string]float64
-
-	_response := doRequest("http://0.0.0.0:8081/?positions=" + strings.Join(sparseArray, ","))
-	err := json.Unmarshal([]byte(_response), &predictionResults)
-	if err != nil {
-		panic(err)
-	}
+	predictionResults := getPredictionResults(featuresSparseMatrix)
 
 	for _, obj := range predictionResults {
 		for key, prediction := range obj {
 			if prediction <= threshold {
 				continue
 			}
-			if key == uaFamilyCode  {
+			if key == uaFamilyCode {
 				return "human"
 			}
 		}
@@ -112,15 +142,36 @@ func handleHeader(response []byte, uaFamilyCode string ) string {
 
 	return "bot"
 }
+func getSparseMatrix(fullFeatures []float64) []string {
+	var featuresSparseMatrix []string
+	for index_column, value := range fullFeatures {
+		if value == 1 {
+			featuresSparseMatrix = append(featuresSparseMatrix, fmt.Sprintf("%v", index_column))
+		}
+	}
+	return featuresSparseMatrix
+}
+
+func getPredictionResults(sparseArray []string) []map[string]float64 {
+	var predictionResults []map[string]float64
+	_response := doRequest("http://0.0.0.0:8081/?positions=" + strings.Join(sparseArray, ","))
+	err := json.Unmarshal([]byte(_response), &predictionResults)
+	if err != nil {
+		panic(err)
+	}
+	return predictionResults
+}
 
 func doRequest(url string) []byte {
+
 	req.SetRequestURI(url)
+
 	connection.Do(req, resp)
+
 	return resp.Body()
 }
 
 func handleLogLine(line []byte) (string, map[string]interface{}, map[string]interface{}) {
-	//defer timeTrack(time.Now(), "handleLogLine")
 
 	var (
 		valueRow   map[string]interface{} = make(map[string]interface{})

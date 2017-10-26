@@ -1,10 +1,9 @@
 package main
 
-import  (
+import (
 	"flag"
 	"log"
 	"github.com/valyala/fasthttp"
-	"time"
 	"fmt"
 	"github.com/buger/jsonparser"
 	"encoding/json"
@@ -24,8 +23,8 @@ var (
 	db                  *gorm.DB
 	udger_instance      *udger.Udger = nil
 	connection                       = &fasthttp.Client{}
-    req = fasthttp.AcquireRequest()
-	resp = fasthttp.AcquireResponse()
+	req                              = fasthttp.AcquireRequest()
+	resp                             = fasthttp.AcquireResponse()
 )
 
 func init() {
@@ -82,7 +81,6 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 	ctx.Response.SetBodyString(agent)
 }
 
-//noinspection GoUnusedParameter
 func handleHeader(response []byte) string {
 	userAgent, valueData, orderData := handleLogLine(response)
 
@@ -93,6 +91,15 @@ func handleHeader(response []byte) string {
 	if udger_instance.IsCrawler("", userAgent, true) {
 		return "crawler"
 	}
+
+	if isHuman(valueData, orderData) {
+		return "human"
+	}
+
+	return "bot"
+}
+
+func isHuman(valueData map[string]interface{}, orderData map[string]interface{}) bool {
 
 	trimmedValue, trimmedOrder := trimData(valueData, orderData)
 	fullFeatures := s.GetSingleFullFeatures(trimmedOrder, trimmedValue, valuesFeaturesOrder)
@@ -105,25 +112,34 @@ func handleHeader(response []byte) string {
 		}
 	}
 
-	_response := doRequest("http://0.0.0.0:8081/?positions=" + strings.Join(sparseArray, ","))
-	var predictionResults []map[string]float64
-	err := json.Unmarshal([]byte(_response), &predictionResults)
-	if err != nil {
-		panic(err)
-	}
-
+	predictionResults := getPredictionResults(sparseArray)
 	for _, obj := range predictionResults {
 		for key, prediction := range obj {
 			if prediction <= 0.03 {
 				continue
 			}
 			if key == udger_instance.ParseData["user_agent"]["ua_family_code"] {
-				return "human"
+				return true
 			}
 		}
 	}
 
-	return "bot"
+	return false
+}
+
+func getPredictionResults(sparseArray []string) []map[string]float64 {
+
+	_response := doRequest("http://0.0.0.0:8081/?positions=" + strings.Join(sparseArray, ","))
+
+	var predictionResults []map[string]float64
+
+	err := json.Unmarshal([]byte(_response), &predictionResults)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return predictionResults
 }
 
 func doRequest(url string) []byte {
@@ -162,7 +178,10 @@ func handleLogLine(line []byte) (string, map[string]interface{}, map[string]inte
 	}
 }
 
-func trimData(valueData map[string]interface{}, orderData map[string]interface{}) (map[string]interface{}, map[string]interface{}) {
+func trimData(
+	valueData map[string]interface{},
+	orderData map[string]interface{},
+) (map[string]interface{}, map[string]interface{}) {
 	var headerModel = m.Log{ValueData: valueData, OrderData: orderData}
 	return headerModel.TrimValueData(), headerModel.TrimOrderData()
 }

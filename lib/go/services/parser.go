@@ -37,7 +37,6 @@ func HandleLogLine(
 	udger *udger.Udger) (bool, map[string]interface{}, map[string]interface{}, map[string]interface{}) {
 
 	var (
-		result     bool                   = true
 		elements                          = strings.SplitN(line, ",", 3)
 		mainRow    map[string]interface{} = make(map[string]interface{})
 		valueRow   map[string]interface{} = make(map[string]interface{})
@@ -77,6 +76,7 @@ func HandleLogLine(
 	}
 
 	if headers != "" {
+
 		if headers[:1] != "'" {
 			log.Printf("parsers.HandleLogLine: string(elements[2][0]) != ' elements[2] = %s", headers)
 			return false, nil, nil, nil
@@ -115,16 +115,17 @@ func HandleLogLine(
 			}
 
 			if filterCrawlers && udger.IsCrawler(ip, ua, false) {
-				log.Println("ua is crawler: ", elements[1], ua)
+				//log.Println("ua is crawler: ", elements[1], ua)
 				return false, nil, nil, nil
 			}
 
 			if needUaParsing {
 				uaObj := udger.ParseData["user_agent"]
 
-				if uaObj["ua_family_code"] == "" || uaObj["os_family_code"] == "" {
-					return false, nil, nil, nil
-				}
+				//if uaObj["ua_family_code"] == "" || uaObj["os_family_code"] == "" {
+				//	log.Println("ua_family_code || os_family_code is empty: ", elements[1], ua)
+				//	return false, nil, nil, nil
+				//}
 
 				mainRow["ua_family_code"] = uaObj["ua_family_code"]
 				mainRow["ua_version"] = uaObj["ua_family_code"] + " " + uaObj["ua_version"]
@@ -138,16 +139,18 @@ func HandleLogLine(
 		mainRow["timestamp"] = timestamp
 		mainRow["ip"] = ip
 		mainRow["User_Agent"] = valueRow["User-Agent"].(string)
+
+		return true, mainRow, valueRow, orderedRow
 	}
 
-	return result, mainRow, valueRow, orderedRow
+	return false, mainRow, valueRow, orderedRow
 }
 
 func ParseLogLineWithCrawlers(
 	line string,
 	startLogTime int64,
 	finishLogTime int64,
-	udger *udger.Udger) (headers_return string) {
+) (headers_return string) {
 
 	var (
 		elements = strings.SplitN(line, ",", 3)
@@ -158,10 +161,6 @@ func ParseLogLineWithCrawlers(
 	i := strings.Index(line[11:], ",")
 	ip := line[11:11+i]
 	headers := line[11+i+1:]
-
-	//println("timestamp", timestamp)
-	//println("ip", ip)
-	//println("headers: ", headers)
 
 	if timestamp == "" || ip == "" {
 		log.Printf("parsers.HandleLogLine: one is empty(timestamp, ip, headers)  %s, %s, %s", timestamp, ip, headers)
@@ -180,7 +179,7 @@ func ParseLogLineWithCrawlers(
 		return headers_return
 	}
 
-	if (timestamp == "" || ip == "" || headers == "") {
+	if timestamp == "" || ip == "" || headers == "" {
 		log.Printf("parsers.HandleLogLine: elements[0] == empty || elements[1] == empty || elements[2] == empty %+v", elements)
 		return headers_return
 	}
@@ -260,6 +259,8 @@ func ParseAndStoreSingleGzLogInDb(
 	bytesOfString, _ := h.ReadGzFile(filePath)
 	lines := strings.Split(string(bytesOfString), "\n")
 
+	println("lines len", len(lines))
+	i:=0
 	for index, line := range lines {
 
 		splittedLine := strings.SplitN(line, ",", 3)
@@ -281,8 +282,9 @@ func ParseAndStoreSingleGzLogInDb(
 			finishLogTime, udger)
 
 		if canBeUsed {
+			i++
 			tx := db.Begin()
-			log := m.Log{
+			_log := m.Log{
 				Timestamp: h.UnixTimestampStrToTime(h.GetMapValueByKey(mainRow, "timestamp")),
 				Ip:        h.GetMapValueByKey(mainRow, "ip", ),
 
@@ -297,7 +299,7 @@ func ParseAndStoreSingleGzLogInDb(
 				ValueData: valueRow,
 				OrderData: orderedRow,
 			}
-			tx.Create(&log)
+			tx.Create(&_log)
 			if doRoolback {
 				tx.Rollback()
 			} else {
@@ -306,14 +308,15 @@ func ParseAndStoreSingleGzLogInDb(
 		}
 	}
 
+	println("stored", i)
+
 	return nil
 }
 
 func ParseAndGetDataFromSingleGzFile(
 	filePath string,
 	startLogTime int64,
-	finishLogTime int64,
-	udger *udger.Udger) (logs []string) {
+	finishLogTime int64) (logs []string) {
 
 	db, err := gorm.Open("postgres", m.GetDBConnectionStr())
 	if err != nil {
@@ -343,7 +346,7 @@ func ParseAndGetDataFromSingleGzFile(
 		headers_return := ParseLogLineWithCrawlers(
 			line,
 			startLogTime,
-			finishLogTime, udger)
+			finishLogTime)
 
 		if headers_return != "" {
 			logs = append(logs, headers_return)
@@ -400,56 +403,33 @@ func PrepareData(startLogTime int64, finishLogTime int64) (
 	intUAClasses [][]int, floatUAClasses [][]float64, floatFullFeatures [][]float64, intFullFeatures [][]int) {
 
 	userAgentList, trimmedValueData, trimmedOrderData := GetTrimmedLodMapsForPeriod(startLogTime, finishLogTime)
-	println("PrepareData: after GetTrimmedLodMapsForPeriod", len(userAgentList))
-	//orderFeatures := GetOrderFeatures(trimmedOrderData)
-	//valueFeatures := GetValueFeatures(trimmedValueData, valuesFeaturesOrder)
 
 	valuesFeaturesOrder := FitValuesFeaturesOrder(trimmedValueData)
-	println("PrepareData: after FitValuesFeaturesOrder")
 
 	floatFullFeatures, intFullFeatures = GetFullFeatures(trimmedOrderData, trimmedValueData, valuesFeaturesOrder)
-	println("PrepareData: after GetFullFeatures")
 
 	userAgentIntCodes, _ := FitUserAgentCodes(userAgentList)
-	println("PrepareData: after FitUserAgentCodes")
 
-	//intUAClasses, floatUAClasses := GetUAClasses(userAgentList, userAgentIntCodes, userAgentFloatCodes)
 	intUAClasses, floatUAClasses = GetUAClassesOneVsRest(userAgentList, userAgentIntCodes)
-	println("PrepareData: after GetUAClassesOneVsRest")
 
 	return intUAClasses, floatUAClasses, floatFullFeatures, intFullFeatures
 }
 
-func PrepareDataUaVersion(
-	startLogTime int64,
-	finishLogTime int64,
-	_udger *udger.Udger,
-) (
+func PrepareUaFamilyCodes(limit int64) (
 	intUaVersionClasses [][]int,
 	floatUaVersionClasses [][]float64,
 	floatFullFeatures [][]float64,
 	intFullFeatures [][]int,
-	browserList []string,
+	uaFamilyCodeList []string,
 	headersId []uint) {
 
-	headersId, browserList, trimmedValueData, trimmedOrderData := GetTrimmedLodMapsForPeriodWithUaFamilyCode(startLogTime, finishLogTime, _udger)
-	println("PrepareData: after GetTrimmedLodMapsForPeriod. len(browserList): ", len(browserList))
+	headersId, uaFamilyCodeList, trimmedValueData, trimmedOrderData := GetTrimmedDataWithUaFamilyCode(limit)
 
 	valuesFeaturesOrder := FitValuesFeaturesOrder(trimmedValueData)
-	//println("PrepareData: after FitValuesFeaturesOrder. len(valuesFeaturesOrder): ", len(valuesFeaturesOrder))
 
 	floatFullFeatures, intFullFeatures = GetFullFeatures(trimmedOrderData, trimmedValueData, valuesFeaturesOrder)
-	println("PrepareData: after GetFullFeatures. len(floatFullFeatures): ", len(floatFullFeatures))
 
-	uaVersionIntCodes, _ := FitUserAgentVersions(browserList)
-	println("PrepareData: after browserList. len(uaVersionIntCodes): ", len(browserList))
-	println("PrepareData: after FitUserAgentVersions. len(uaVersionIntCodes): ", len(uaVersionIntCodes))
-
-	//intUaVersionClasses, floatUaVersionClasses := GetUAClasses(browserList, uaVersionIntCodes, userAgentFloatCodes)
-	//intUaVersionClasses, floatUaVersionClasses = GetUaVersionsClassesOneVsRest(browserList, uaVersionIntCodes)
-	println("PrepareData: after GetUaVersionsClassesOneVsRest. len(intUaVersionClasses): ", len(intUaVersionClasses))
-
-	return intUaVersionClasses, floatUaVersionClasses, floatFullFeatures, intFullFeatures, browserList, headersId
+	return
 }
 
 func GetTrimmedLodMapsForPeriod(
@@ -463,56 +443,35 @@ func GetTrimmedLodMapsForPeriod(
 		logs             = GetLogsInPeriod(startLogTime, finishLogTime)
 	)
 
-	for _, log := range logs {
-		trimmedValueData = append(trimmedValueData, log.TrimValueData())
-		trimmedOrderData = append(trimmedOrderData, log.TrimOrderData())
-		userAgent = append(userAgent, log.UserAgent)
+	for _, _log := range logs {
+		trimmedValueData = append(trimmedValueData, _log.TrimValueData())
+		trimmedOrderData = append(trimmedOrderData, _log.TrimOrderData())
+		userAgent = append(userAgent, _log.UserAgent)
 	}
 
 	return userAgent, trimmedValueData, trimmedOrderData
 }
 
-func GetTrimmedLodMapsForPeriodWithUaFamilyCode(
-	startLogTime int64,
-	finishLogTime int64,
-	_udger *udger.Udger,
-) ([]uint,[]string, []map[string]interface{}, []map[string]interface{}) {
+func GetTrimmedDataWithUaFamilyCode(limit int64, ) ([]uint, []string, []map[string]interface{}, []map[string]interface{}) {
 
 	var (
 		trimmedValueData      []map[string]interface{}
 		trimmedOrderData      []map[string]interface{}
 		userAgentFamilyCodeId []uint
 		userAgentVersion      []string
-		logs                                   = GetLogsInPeriod(startLogTime, finishLogTime)
+		logs                  = GetLogsWithLimit(limit)
 	)
-	println("logs in select:", len(logs))
-	for _, log := range logs {
-		trimmedValueData = append(trimmedValueData, log.TrimValueData())
-		trimmedOrderData = append(trimmedOrderData, log.TrimOrderData())
-		userAgentVersion = append(userAgentVersion, log.UaFamilyCode)
-		userAgentFamilyCodeId = append(userAgentFamilyCodeId, log.ID)
 
-		//_udger.ParseUa(log.UserAgent)
-		//
-		//splittedVersion := delete_empty(strings.SplitN(_udger.ParseData["user_agent"]["ua_version"], ".", 2)[:1])
-		//if len(splittedVersion) == 0 {
-		//	userAgentFamilyCodeId = append(userAgentFamilyCodeId, _udger.ParseData["user_agent"]["ua_family_code"])
-		//} else {
-		//	userAgentFamilyCodeId = append(userAgentFamilyCodeId, _udger.ParseData["user_agent"]["ua_family_code"] + "" + strings.Join(splittedVersion, "."))
-		//}
+	println("Logs in sample:", len(logs))
+
+	for _, _log := range logs {
+		trimmedValueData = append(trimmedValueData, _log.TrimValueData())
+		trimmedOrderData = append(trimmedOrderData, _log.TrimOrderData())
+		userAgentVersion = append(userAgentVersion, _log.UaFamilyCode)
+		userAgentFamilyCodeId = append(userAgentFamilyCodeId, _log.ID)
 	}
 
 	return userAgentFamilyCodeId, userAgentVersion, trimmedValueData, trimmedOrderData
-}
-
-func delete_empty(s []string) []string {
-	var r []string
-	for _, str := range s {
-		if str != "" {
-			r = append(r, str)
-		}
-	}
-	return r
 }
 
 func GetLogsInPeriod(startLogTime int64, finishLogTime int64) []m.Log {
@@ -531,6 +490,24 @@ func GetLogsInPeriod(startLogTime int64, finishLogTime int64) []m.Log {
 
 	logs := []m.Log{}
 	db.Order("timestamp").Where("timestamp BETWEEN ? AND ?", start, end).Find(&logs)
+	return logs
+}
+
+func GetLogsWithLimit(limit int64) []m.Log {
+	if limit == 0 {
+		return []m.Log{}
+	}
+	db, err := gorm.Open("postgres", m.GetDBConnectionStr())
+	if err != nil {
+		log.Fatalf("parse_gz_logs.go - main: Failed to connect database: %s", err)
+	}
+	defer db.Close()
+	if !db.HasTable(&m.Log{}) {
+		db.AutoMigrate(&m.Log{})
+	}
+
+	logs := []m.Log{}
+	db.Limit(limit).Order("timestamp DESC").Find(&logs)
 	return logs
 }
 

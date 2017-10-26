@@ -13,6 +13,16 @@ import (
 	"log"
 	"github.com/uniplaces/carbon"
 	"time"
+	"gopkg.in/cheggaaa/pb.v1"
+	"github.com/valyala/fasthttp"
+	"strings"
+	"os/exec"
+)
+
+var (
+	connection = &fasthttp.Client{}
+	req        = fasthttp.AcquireRequest()
+	resp       = fasthttp.AcquireResponse()
 )
 
 func init() {
@@ -67,11 +77,15 @@ func main() {
 		log.Fatalf("parse_gz_logs.go: main - Failed to connect database: %s ", err)
 	}
 
-	if !db.HasTable(&m.GzLog{}) {db.AutoMigrate(&m.GzLog{})}
-	if !db.HasTable(&m.Log{}) {db.AutoMigrate(&m.Log{})}
+	if !db.HasTable(&m.GzLog{}) {
+		db.AutoMigrate(&m.GzLog{})
+	}
+	if !db.HasTable(&m.Log{}) {
+		db.AutoMigrate(&m.Log{})
+	}
 
-	_udger, err:= udger.New(os.Getenv("DB_FILE_PATH_UDGER"))
-	if err!=nil{
+	_udger, err := udger.New(os.Getenv("DB_FILE_PATH_UDGER"))
+	if err != nil {
 		panic(err)
 	}
 
@@ -113,7 +127,7 @@ func main() {
 
 		fmt.Println(fmt.Sprintf("parse_gz_logs.go: main - Parsed and saved %v files", filesToHandle))
 		log.Printf("parse_gz_logs.go: main - Parsed and saved %v files", filesToHandle)
-		StartEducation()
+		EducateModel()
 		return
 	}
 
@@ -144,20 +158,106 @@ func main() {
 	fmt.Printf("parse_gz_logs.go: main - Successfully parse file: %s ", e)
 	log.Println("parse_gz_logs.go: main - Successfully parse file: ", fileName)
 
-	StartEducation()
+	EducateModel()
 }
 
-func StartEducation() {
-	startTime := os.Getenv("PARSER_TIME_START")
-	endTime := os.Getenv("PARSER_TIME_END")
+func EducateModel() {
 
-	if startTime == "" || endTime == "" {
-		panic("PARSER_TIME_START and PARSER_TIME_END must be set in env file")
+	// PrepareDataForTrain
+	prepareDataForTrain()
+
+	// train
+	train()
+
+	// reload model on prediction server
+	reloadModelOnPythonServer()
+}
+
+func reloadModelOnPythonServer() {
+
+	log.Println("Start reloading model on prediction server")
+
+	_response := doRequest("http://0.0.0.0:8081/reload")
+	log.Println("_response", string(_response))
+
+	if string(_response) == "reloaded" {
+		log.Println("Prediction model reloaded on python server")
+	} else {
+		log.Println("Problem while reloading prediction model on python server", string(_response))
 	}
+}
 
-	//_, floatUAClasses, fullFeatures := s.PrepareData(helpers.StrToInt64(startTime), helpers.StrToInt64(endTime))
+func train() {
+	log.Println("Start training")
 
-	//println(len(floatUAClasses), len(fullFeatures))
+	cmd := exec.Command("./lib/python/train")
+	cmd.Wait()
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Println("error python exec: ", err)
+		os.Exit(-1)
+	}
+	if strings.Contains(string(out), "Education finished") {
+		log.Println("Education finished")
+	} else {
+		log.Println("Problem detected while educate model")
+	}
+}
+
+func prepareDataForTrain() {
+	log.Println("Start preparing data for train")
+
+	_, _, _, intFullFeatures, uaFamilyCodesList, logIds := s.PrepareUaFamilyCodes(90000)
+	db, err := gorm.Open("postgres", m.GetDBConnectionStr())
+	if err != nil {
+		panic("user_agent_helpers.go - LoadFittedUserAgentCodes: Failed to connect to database")
+	}
+	defer db.Close()
+	if !db.HasTable(&m.Features{}) {
+		db.AutoMigrate(&m.Features{})
+	}
+	if !db.HasTable(&m.Browsers{}) {
+		db.AutoMigrate(&m.Browsers{})
+	}
+	db.Exec("TRUNCATE TABLE features;")
+	db.Exec("TRUNCATE TABLE browsers;")
+	tx := db.Begin()
+	bar := pb.StartNew(len(intFullFeatures))
+	bar.SetRefreshRate(time.Second)
+	for index_row, featureValues := range intFullFeatures {
+		for index_column, value := range featureValues {
+			if value == 1 {
+				cacheFeatures := m.Features{
+					LogId:  logIds[index_row],
+					Row:    index_row,
+					Column: index_column,
+				}
+				tx.Create(&cacheFeatures)
+			}
+		}
+		bar.Increment()
+	}
+	tx.Commit()
+	tx = db.Begin()
+	bar = pb.StartNew(len(uaFamilyCodesList))
+	bar.SetRefreshRate(time.Second)
+	for i, name := range uaFamilyCodesList {
+		bar.Increment()
+		cacheFeatures := m.Browsers{Name: name, LogId: logIds[i]}
+		tx.Create(&cacheFeatures)
+	}
+	tx.Commit()
+
+	log.Println("Finish preparing data for train")
+}
+
+func doRequest(url string) []byte {
+
+	req.SetRequestURI(url)
+
+	connection.Do(req, resp)
+
+	return resp.Body()
 }
 
 func init() {
