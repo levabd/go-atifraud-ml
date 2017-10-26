@@ -21,12 +21,12 @@ func TestTrimmedLogOrderData(t *testing.T) {
 		OrderData: ordered,
 	}
 
-	trimmed_order_data := log.TrimOrderData()
+	trimmedOrderData := log.TrimOrderData()
 
-	println("models.TestTrimmedLogValueData: trimmed_order_data - ", len(trimmed_order_data))
+	println("models.TestTrimmedLogValueData: trimmed_order_data - ", len(trimmedOrderData))
 	println("models.TestTrimmedLogValueData: ordered - ", len(ordered))
-	assert.Equal(t, 1, len(ordered)-len(trimmed_order_data), "1 order header must be cut")
-	assert.NotEqual(t, len(trimmed_order_data), len(ordered), "trimmed_order_data must length be != ordered length")
+	assert.Equal(t, 1, len(ordered)-len(trimmedOrderData), "1 order header must be cut")
+	assert.NotEqual(t, len(trimmedOrderData), len(ordered), "trimmed_order_data must length be != ordered length")
 }
 
 func TestTrimmedLogValueData(t *testing.T) {
@@ -42,9 +42,9 @@ func TestTrimmedLogValueData(t *testing.T) {
 		ValueData: headers,
 	}
 
-	trimmed_headers := log.TrimValueData()
+	trimmedHeaders := log.TrimValueData()
 	println("models.TestTrimmedLogValueData: headers - ", len(headers))
-	println("models.TestTrimmedLogValueData: trimmed_headers - ", len(trimmed_headers))
-	assert.Equal(t, 5, len(headers)-len(trimmed_headers), "5 headers must be cut")
-	assert.NotEqual(t, len(trimmed_headers), len(headers), "trimmed_headers must length be != headers length")
+	println("models.TestTrimmedLogValueData: trimmed_headers - ", len(trimmedHeaders))
+	assert.Equal(t, 5, len(headers)-len(trimmedHeaders), "5 headers must be cut")
+	assert.NotEqual(t, len(trimmedHeaders), len(headers), "trimmed_headers must length be != headers length")
 }

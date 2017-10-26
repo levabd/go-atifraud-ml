@@ -1,207 +1,304 @@
 package services
 
 import (
+	"regexp"
 	"strings"
 	"github.com/buger/jsonparser"
 	"fmt"
 	"path/filepath"
 	"os"
 	"time"
-	"bytes"
 	h "github.com/levabd/go-atifraud-ml/lib/go/helpers"
 	"bufio"
 	m "github.com/levabd/go-atifraud-ml/lib/go/models"
 	"github.com/jinzhu/gorm"
 	"errors"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"log"
+	"github.com/levabd/go-atifraud-ml/lib/go/udger"
 )
 
-func timeIsWrong(log_timestamp string, start_log_time int64, finish_log_time int64) bool {
+func timeIsWrong(logTimestamp string, startLogTime int64, finishLogTime int64, ) bool {
 
-	time_in_logs := time.Unix(0, h.StrToInt64(log_timestamp))
+	timeInLogs := time.Unix(0, h.StrToInt64(logTimestamp))
 
-	start := time.Unix(0, start_log_time)
-	finish := time.Unix(0, finish_log_time)
+	start := time.Unix(0, startLogTime)
+	finish := time.Unix(0, finishLogTime)
 
-	return time_in_logs.Before(start) || time_in_logs.After(finish)
+	return timeInLogs.Before(start) || timeInLogs.After(finish)
 }
 
 func HandleLogLine(
 	line string,
-	filter_crawlers bool,
-	need_ua_parsing bool,
-	start_log_time int64,
-	finish_log_time int64) (bool, map[string]interface{}, map[string]interface{}, map[string]interface{}) {
+	filterCrawlers bool,
+	needUaParsing bool,
+	startLogTime int64,
+	finishLogTime int64,
+	udger *udger.Udger) (bool, map[string]interface{}, map[string]interface{}, map[string]interface{}) {
 
 	var (
-		result      bool                   = true
-		elements                           = strings.SplitN(line, ",", 3)
-		main_row    map[string]interface{} = make(map[string]interface{})
-		value_row   map[string]interface{} = make(map[string]interface{})
-		ordered_row map[string]interface{} = make(map[string]interface{})
+		result     bool                   = true
+		elements                          = strings.SplitN(line, ",", 3)
+		mainRow    map[string]interface{} = make(map[string]interface{})
+		valueRow   map[string]interface{} = make(map[string]interface{})
+		orderedRow map[string]interface{} = make(map[string]interface{})
 	)
 
-	if elements[0] == "" {
-		result = false
+	// get data
+	timestamp := line[:10]
+	i := strings.Index(line[11:], ",")
+	ip := line[11:11+i]
+	headers := line[11+i+1:]
+
+	//println("timestamp", timestamp)
+	//println("ip", ip)
+	//println("headers: ", headers)
+
+	if timestamp == "" || ip == "" {
+		log.Printf("parsers.HandleLogLine: one is empty(timestamp, ip, headers)  %s, %s, %s", timestamp, ip, headers)
 		return false, nil, nil, nil
 	}
 
-	if timeIsWrong(elements[0], start_log_time, finish_log_time) {
-		Logger.Printf("parsers.HandleLogLine: timeIsWrong: log_time - %s, start_log_time - %v, finish_log_time %v",
-			string(elements[0]), start_log_time, finish_log_time)
+	if timeIsWrong(timestamp, startLogTime, finishLogTime) {
+		log.Printf("parsers.HandleLogLine: timeIsWrong: log_time - %s, start_log_time - %v, finish_log_time %v",
+			string(elements[0]), startLogTime, finishLogTime)
 
 		return false, nil, nil, nil
 	}
 
-	if len(elements) < 3{
-		Logger.Printf("parsers.HandleLogLine: not enoth elements ")
+	if len(elements) < 3 {
+		log.Printf("parsers.HandleLogLine: not enoth elements %+v", elements)
 		return false, nil, nil, nil
 	}
 
-	if filter_crawlers && (elements[0] == "" ||elements[1] == "" ||elements[2] == "") {
-		Logger.Printf("parsers.HandleLogLine: not enoth elements ")
+	if filterCrawlers && (timestamp == "" || ip == "" || headers == "") {
+		log.Printf("parsers.HandleLogLine: elements[0] == empty || elements[1] == empty || elements[2] == empty %+v", elements)
 		return false, nil, nil, nil
 	}
 
-	if len(elements[2]) > 0 {
-		if string(elements[2][0]) != "'" {
-			Logger.Printf("parsers.HandleLogLine: string(elements[2][0]) != ' ")
+	if headers != "" {
+		if headers[:1] != "'" {
+			log.Printf("parsers.HandleLogLine: string(elements[2][0]) != ' elements[2] = %s", headers)
 			return false, nil, nil, nil
 		}
 
-		json_to_parse := strings.Replace(string(elements[2]), " ", "", -1)
-		json_to_parse = strings.TrimPrefix(strings.TrimSuffix(json_to_parse, ""), "'")
+		// replace all \/ by single /
+		var re = regexp.MustCompile(`(?m)\\/`)
+		var substitution = `/`
 
-		data := []byte(json_to_parse)
+		str_replaced := re.ReplaceAllString(headers, substitution)
+		jsonToParse := strings.TrimPrefix(strings.TrimSuffix(str_replaced, "'"), "'")
+
+		data := []byte(jsonToParse)
 		i := 0
 		jsonparser.ObjectEach(data, func(
 			key []byte,
 			value []byte,
 			dataType jsonparser.ValueType,
 			offset int) error {
-			ordered_row[ string(key)] = i
-			value_row[ string(key)] = string(value)
+			orderedRow[ string(key)] = i
+			valueRow[ string(key)] = string(value)
 			i = i + 1
 			return nil
 		})
 
-		if value_row["User-Agent"] ==nil{
-			Logger.Printf("parsers.ParseAndStoreSingleGzLogInDb: No user agent in header %s ", json_to_parse)
+		if valueRow["User-Agent"] == nil {
+			log.Printf("parsers.ParseAndStoreSingleGzLogInDb: No user agent in headers %+v", valueRow)
 			return false, nil, nil, nil
 		}
 
 		// define crawler in User-Agent
-		if ua, ok := value_row["User-Agent"].(string); ok {
-			if filter_crawlers && IsCrawler(elements[1], ua) {
-				result = false
-				return result, nil, nil, nil
+		if ua, ok := valueRow["User-Agent"].(string); ok {
+
+			if ua == "" {
+				return false, nil, nil, nil
 			}
 
-			if need_ua_parsing {
-				ua_obj := GetUa(ua)
+			if filterCrawlers && udger.IsCrawler(ip, ua, false) {
+				log.Println("ua is crawler: ", elements[1], ua)
+				return false, nil, nil, nil
+			}
 
-				var buffer bytes.Buffer
-				buffer.WriteString(h.GetMapValueByKey(ua_obj, "ua_family_code"))
-				buffer.WriteString(h.GetMapValueByKey(ua_obj, "ua_version"))
-				main_row["ua_family_code"] = h.GetMapValueByKey(ua_obj, "ua_family_code")
-				main_row["ua_version"] = buffer.String()
-				main_row["ua_class_code"] = h.GetMapValueByKey(ua_obj, "ua_class_code")
-				main_row["device_class_code"] = h.GetMapValueByKey(ua_obj, "device_class_code")
-				main_row["os_family_code"] = h.GetMapValueByKey(ua_obj, "os_family_code")
-				main_row["os_code"] = h.GetMapValueByKey(ua_obj, "os_code")
+			if needUaParsing {
+				uaObj := udger.ParseData["user_agent"]
+
+				if uaObj["ua_family_code"] == "" || uaObj["os_family_code"] == "" {
+					return false, nil, nil, nil
+				}
+
+				mainRow["ua_family_code"] = uaObj["ua_family_code"]
+				mainRow["ua_version"] = uaObj["ua_family_code"] + " " + uaObj["ua_version"]
+				mainRow["ua_class_code"] = uaObj["ua_class_code"]
+				mainRow["device_class_code"] = uaObj["device_class_code"]
+				mainRow["os_family_code"] = uaObj["os_family_code"]
+				mainRow["os_code"] = uaObj["os_code"]
 			}
 		}
 
-		main_row["timestamp"] = elements[0]
-		main_row["ip"] = elements[1]
-		main_row["User_Agent"] = value_row["User-Agent"].(string)
+		mainRow["timestamp"] = timestamp
+		mainRow["ip"] = ip
+		mainRow["User_Agent"] = valueRow["User-Agent"].(string)
 	}
 
-	return result, main_row, value_row, ordered_row
+	return result, mainRow, valueRow, orderedRow
+}
+
+func ParseLogLineWithCrawlers(
+	line string,
+	startLogTime int64,
+	finishLogTime int64,
+	udger *udger.Udger) (headers_return string) {
+
+	var (
+		elements = strings.SplitN(line, ",", 3)
+	)
+
+	// get data
+	timestamp := line[:10]
+	i := strings.Index(line[11:], ",")
+	ip := line[11:11+i]
+	headers := line[11+i+1:]
+
+	//println("timestamp", timestamp)
+	//println("ip", ip)
+	//println("headers: ", headers)
+
+	if timestamp == "" || ip == "" {
+		log.Printf("parsers.HandleLogLine: one is empty(timestamp, ip, headers)  %s, %s, %s", timestamp, ip, headers)
+		return headers_return
+	}
+
+	if timeIsWrong(timestamp, startLogTime, finishLogTime) {
+		log.Printf("parsers.HandleLogLine: timeIsWrong: log_time - %s, start_log_time - %v, finish_log_time %v",
+			string(elements[0]), startLogTime, finishLogTime)
+
+		return headers_return
+	}
+
+	if len(elements) < 3 {
+		log.Printf("parsers.HandleLogLine: not enoth elements %+v", elements)
+		return headers_return
+	}
+
+	if (timestamp == "" || ip == "" || headers == "") {
+		log.Printf("parsers.HandleLogLine: elements[0] == empty || elements[1] == empty || elements[2] == empty %+v", elements)
+		return headers_return
+	}
+
+	if headers != "" {
+		if headers[:1] != "'" {
+			log.Printf("parsers.HandleLogLine: string(elements[2][0]) != ' elements[2] = %s", headers)
+			return headers_return
+		}
+
+		// replace all \/ by single /
+		var re = regexp.MustCompile(`(?m)\\/`)
+		var substitution = `/`
+
+		str_replaced := re.ReplaceAllString(headers, substitution)
+		headers_return = strings.TrimPrefix(strings.TrimSuffix(str_replaced, "'"), "'")
+
+		return headers_return
+	}
+
+	return headers_return
 }
 
 func ParseSingleLog(
-	path_to_log string,
-	filter_crawlers bool,
-	parse_ua bool,
-	start_log_time int64,
-	finish_log_time int64) ([]map[string]interface{}, []map[string]interface{}, []map[string]interface{}) {
+	pathToLog string,
+	filterCrawlers bool,
+	parseUa bool,
+	startLogTime int64,
+	finishLogTime int64,
+	udger *udger.Udger) ([]map[string]interface{}, []map[string]interface{}, []map[string]interface{}) {
 
-	inFile, _ := os.Open(path_to_log)
+	inFile, _ := os.Open(pathToLog)
 	defer inFile.Close()
 	scanner := bufio.NewScanner(inFile)
 	scanner.Split(bufio.ScanLines)
 
 	var (
-		main_table    []map[string]interface{}
-		value_table   []map[string]interface{}
-		ordered_table []map[string]interface{}
+		mainTable    []map[string]interface{}
+		valueTable   []map[string]interface{}
+		orderedTable []map[string]interface{}
 	)
 
 	for scanner.Scan() {
-		is_not_bot, main_row, value_row, ordered_row := HandleLogLine(
+		isHuman, mainRow, valueRow, orderedRow := HandleLogLine(
 			scanner.Text(),
-			filter_crawlers,
-			parse_ua,
-			start_log_time,
-			finish_log_time)
+			filterCrawlers,
+			parseUa,
+			startLogTime,
+			finishLogTime, udger)
 
-		if is_not_bot {
-			main_table = append(main_table, main_row)
-			value_table = append(value_table, value_row)
-			ordered_table = append(ordered_table, ordered_row)
+		if isHuman {
+			mainTable = append(mainTable, mainRow)
+			valueTable = append(valueTable, valueRow)
+			orderedTable = append(orderedTable, orderedRow)
 		}
 	}
 
-	return main_table, value_table, ordered_table
+	return mainTable, valueTable, orderedTable
 }
 
 func ParseAndStoreSingleGzLogInDb(
-	file_path string,
-	filter_crawlers bool,
-	parse_ua bool,
-	start_log_time int64,
-	finish_log_time int64,
-	do_roolback bool) error {
+	filePath string,
+	filterCrawlers bool,
+	parseUa bool,
+	startLogTime int64,
+	finishLogTime int64,
+	doRoolback bool, udger *udger.Udger) error {
 
 	db, err := gorm.Open("postgres", m.GetDBConnectionStr())
 	if err != nil {
-		Logger.Printf("parsers.ParseAndStoreSingleGzLogInDb: Failed to connect database: %s", err)
+		log.Printf("parsers.ParseAndStoreSingleGzLogInDb: Failed to connect database: %s", err)
 	}
 	defer db.Close()
 	if !db.HasTable(&m.Log{}) {
 		db.AutoMigrate(&m.Log{})
 	}
-	str_in_bytes, _ := h.ReadGzFile(file_path)
-	lines := strings.Split(string(str_in_bytes), "\n")
+	bytesOfString, _ := h.ReadGzFile(filePath)
+	lines := strings.Split(string(bytesOfString), "\n")
 
-	for _, line := range lines {
-		can_be_used, main_row, value_row, ordered_row := HandleLogLine(
+	for index, line := range lines {
+
+		splittedLine := strings.SplitN(line, ",", 3)
+		if len(splittedLine) < 3 {
+			log.Printf("splittedLine has than 3 elements: %+v", splittedLine)
+			continue
+		}
+
+		if splittedLine[2] == "" {
+			log.Printf("header is empty: %+v %v", splittedLine, index)
+			continue
+		}
+
+		canBeUsed, mainRow, valueRow, orderedRow := HandleLogLine(
 			line,
-			filter_crawlers,
-			parse_ua,
-			start_log_time,
-			finish_log_time)
+			filterCrawlers,
+			parseUa,
+			startLogTime,
+			finishLogTime, udger)
 
-		if can_be_used {
+		if canBeUsed {
 			tx := db.Begin()
 			log := m.Log{
-				Timestamp: h.UnixTimestampStrToTime(h.GetMapValueByKey(main_row, "timestamp")),
-				Ip:        h.GetMapValueByKey(main_row, "ip", ),
+				Timestamp: h.UnixTimestampStrToTime(h.GetMapValueByKey(mainRow, "timestamp")),
+				Ip:        h.GetMapValueByKey(mainRow, "ip", ),
 
-				UserAgent:       h.GetMapValueByKey(main_row, "User_Agent"),
-				UaFamilyCode:    h.GetMapValueByKey(main_row, "ua_family_code"),
-				UaVersion:       h.GetMapValueByKey(main_row, "ua_version"),
-				UaClassCode:     h.GetMapValueByKey(main_row, "ua_class_code"),
-				DeviceClassCode: h.GetMapValueByKey(main_row, "device_class_code"),
-				OsFamilyCode:    h.GetMapValueByKey(main_row, "os_family_code"),
-				OsCode:          h.GetMapValueByKey(main_row, "os_code"),
+				UserAgent:       h.GetMapValueByKey(mainRow, "User_Agent"),
+				UaFamilyCode:    h.GetMapValueByKey(mainRow, "ua_family_code"),
+				UaVersion:       h.GetMapValueByKey(mainRow, "ua_version"),
+				UaClassCode:     h.GetMapValueByKey(mainRow, "ua_class_code"),
+				DeviceClassCode: h.GetMapValueByKey(mainRow, "device_class_code"),
+				OsFamilyCode:    h.GetMapValueByKey(mainRow, "os_family_code"),
+				OsCode:          h.GetMapValueByKey(mainRow, "os_code"),
 
-				ValueData: value_row,
-				OrderData: ordered_row,
+				ValueData: valueRow,
+				OrderData: orderedRow,
 			}
 			tx.Create(&log)
-			if do_roolback {
+			if doRoolback {
 				tx.Rollback()
 			} else {
 				tx.Commit()
@@ -212,74 +309,211 @@ func ParseAndStoreSingleGzLogInDb(
 	return nil
 }
 
+func ParseAndGetDataFromSingleGzFile(
+	filePath string,
+	startLogTime int64,
+	finishLogTime int64,
+	udger *udger.Udger) (logs []string) {
+
+	db, err := gorm.Open("postgres", m.GetDBConnectionStr())
+	if err != nil {
+		log.Printf("parsers.ParseAndStoreSingleGzLogInDb: Failed to connect database: %s", err)
+		return logs
+	}
+	defer db.Close()
+	if !db.HasTable(&m.Log{}) {
+		db.AutoMigrate(&m.Log{})
+	}
+	bytesOfString, _ := h.ReadGzFile(filePath)
+	lines := strings.Split(string(bytesOfString), "\n")
+	lines = lines[:10]
+	for index, line := range lines {
+
+		splittedLine := strings.SplitN(line, ",", 3)
+		if len(splittedLine) < 3 {
+			log.Printf("splittedLine has than 3 elements: %+v", splittedLine)
+			continue
+		}
+
+		if splittedLine[2] == "" {
+			log.Printf("header is empty: %+v %v", splittedLine, index)
+			continue
+		}
+
+		headers_return := ParseLogLineWithCrawlers(
+			line,
+			startLogTime,
+			finishLogTime, udger)
+
+		if headers_return != "" {
+			logs = append(logs, headers_return)
+		}
+	}
+
+	return
+}
+
+func GetLatestLogFile() (string, error) {
+	logsDir := filepath.Join(os.Getenv("APP_ROOT_DIR"), "data", "logs")
+	files := h.GetFileFromDirWithExt(logsDir, "gz")
+	if len(files) == 0 {
+		return "", errors.New(fmt.Sprintf("No files in path %s", logsDir))
+	} else {
+		return files[len(files)-1], nil
+	}
+}
+
 func GetLatestLogFilePath() (string, string, error) {
 
-	logs_dir := filepath.Join(os.Getenv("APP_ROOT_DIR"), "data", "logs")
-	files := h.GetFileFromDirWithExt(logs_dir, "gz")
+	logsDir := filepath.Join(os.Getenv("APP_ROOT_DIR"), "data", "logs")
+	files := h.GetFileFromDirWithExt(logsDir, "gz")
 
 	if len(files) == 0 {
-		Logger.Fatalf("parsers.GetLatestLogFilePath: There is no files(gz) in th dir %s", logs_dir)
+		log.Fatalf("parsers.GetLatestLogFilePath: There is no files(gz) in th dir %s", logsDir)
 		return "", "", nil
 	} else {
 
 		// if file already loaded - return error
-		file_name := files[len(files)-1]
+		fileName := files[len(files)-1]
 		db, err := gorm.Open("postgres", m.GetDBConnectionStr())
 		if err != nil {
-			Logger.Fatalf("parse_gz_logs.go - main: Failed to connect database: %s", err)
+			log.Fatalf("parser.go - main: Failed to connect database: %s", err)
 		}
 		defer db.Close()
 		if !db.HasTable(&m.GzLog{}) {
 			db.AutoMigrate(&m.GzLog{})
 		}
 
-		gz_log := m.GzLog{}
-		db.Where("file_name = ?", file_name).First(&gz_log)
+		gzLog := m.GzLog{}
+		db.Where("file_name = ?", fileName).First(&gzLog)
 
-		if gz_log.ID != 0 {
-			return filepath.Join(logs_dir, file_name), file_name, errors.New(fmt.Sprintf("File %s already loaded to DB", file_name))
+		if gzLog.ID != 0 {
+			return filepath.Join(logsDir, fileName), fileName, errors.New(fmt.Sprintf("File %s already loaded to DB", fileName))
 		}
 
-		return filepath.Join(logs_dir, file_name), file_name, nil
+		return filepath.Join(logsDir, fileName), fileName, nil
 	}
 }
 
-func PrepareData(
-	start_log_time int64, finish_log_time int64,
-)([]map[string]interface{},[]map[string]interface{}, []map[string]int ){
+func PrepareData(startLogTime int64, finishLogTime int64) (
 
-	trimmed_value_data, trimmed_order_data :=GetTrimmedLodMapsForPeriod(start_log_time, finish_log_time)
-	pair_dict_list := GetPairsDictList(trimmed_order_data)
+	intUAClasses [][]int, floatUAClasses [][]float64, floatFullFeatures [][]float64, intFullFeatures [][]int) {
 
-	return trimmed_value_data, trimmed_order_data, pair_dict_list
+	userAgentList, trimmedValueData, trimmedOrderData := GetTrimmedLodMapsForPeriod(startLogTime, finishLogTime)
+	println("PrepareData: after GetTrimmedLodMapsForPeriod", len(userAgentList))
+	//orderFeatures := GetOrderFeatures(trimmedOrderData)
+	//valueFeatures := GetValueFeatures(trimmedValueData, valuesFeaturesOrder)
+
+	valuesFeaturesOrder := FitValuesFeaturesOrder(trimmedValueData)
+	println("PrepareData: after FitValuesFeaturesOrder")
+
+	floatFullFeatures, intFullFeatures = GetFullFeatures(trimmedOrderData, trimmedValueData, valuesFeaturesOrder)
+	println("PrepareData: after GetFullFeatures")
+
+	userAgentIntCodes, _ := FitUserAgentCodes(userAgentList)
+	println("PrepareData: after FitUserAgentCodes")
+
+	//intUAClasses, floatUAClasses := GetUAClasses(userAgentList, userAgentIntCodes, userAgentFloatCodes)
+	intUAClasses, floatUAClasses = GetUAClassesOneVsRest(userAgentList, userAgentIntCodes)
+	println("PrepareData: after GetUAClassesOneVsRest")
+
+	return intUAClasses, floatUAClasses, floatFullFeatures, intFullFeatures
+}
+
+func PrepareDataUaVersion(
+	startLogTime int64,
+	finishLogTime int64,
+	_udger *udger.Udger,
+) (
+	intUaVersionClasses [][]int,
+	floatUaVersionClasses [][]float64,
+	floatFullFeatures [][]float64,
+	intFullFeatures [][]int,
+	browserList []string,
+	headersId []uint) {
+
+	headersId, browserList, trimmedValueData, trimmedOrderData := GetTrimmedLodMapsForPeriodWithUaFamilyCode(startLogTime, finishLogTime, _udger)
+
+	valuesFeaturesOrder := FitValuesFeaturesOrder(trimmedValueData)
+
+	floatFullFeatures, intFullFeatures = GetFullFeatures(trimmedOrderData, trimmedValueData, valuesFeaturesOrder)
+
+	StoreBrowsers(browserList)
+
+	return intUaVersionClasses, floatUaVersionClasses, floatFullFeatures, intFullFeatures, browserList, headersId
 }
 
 func GetTrimmedLodMapsForPeriod(
-	start_log_time int64,
-	finish_log_time int64)([]map[string]interface{},[]map[string]interface{}){
+	startLogTime int64,
+	finishLogTime int64) ([]string, []map[string]interface{}, []map[string]interface{}) {
 
-	var(
-		trimmed_value_data []map[string]interface{}
-		trimmed_order_data []map[string]interface{}
-		logs = GetLogsInPeriod(start_log_time, finish_log_time)
+	var (
+		trimmedValueData []map[string]interface{}
+		trimmedOrderData []map[string]interface{}
+		userAgent        []string
+		logs             = GetLogsInPeriod(startLogTime, finishLogTime)
 	)
 
-	for _, log:= range logs{
-		trimmed_value_data = append(trimmed_value_data, log.TrimValueData())
-		trimmed_order_data = append(trimmed_order_data, log.TrimOrderData())
+	for _, log := range logs {
+		trimmedValueData = append(trimmedValueData, log.TrimValueData())
+		trimmedOrderData = append(trimmedOrderData, log.TrimOrderData())
+		userAgent = append(userAgent, log.UserAgent)
 	}
 
-	return trimmed_value_data, trimmed_order_data
+	return userAgent, trimmedValueData, trimmedOrderData
 }
 
-func GetLogsInPeriod(start_log_time int64, finish_log_time int64) []m.Log {
+func GetTrimmedLodMapsForPeriodWithUaFamilyCode(
+	startLogTime int64,
+	finishLogTime int64,
+	_udger *udger.Udger,
+) ([]uint,[]string, []map[string]interface{}, []map[string]interface{}) {
 
-	start := time.Unix(start_log_time, 0)
-	end := time.Unix(finish_log_time, 0)
+	var (
+		trimmedValueData      []map[string]interface{}
+		trimmedOrderData      []map[string]interface{}
+		userAgentFamilyCodeId []uint
+		userAgentVersion      []string
+		logs                                   = GetLogsInPeriod(startLogTime, finishLogTime)
+	)
+	println("logs in select:", len(logs))
+	for _, log := range logs {
+		trimmedValueData = append(trimmedValueData, log.TrimValueData())
+		trimmedOrderData = append(trimmedOrderData, log.TrimOrderData())
+		userAgentVersion = append(userAgentVersion, log.UaFamilyCode)
+		userAgentFamilyCodeId = append(userAgentFamilyCodeId, log.ID)
+
+		//_udger.ParseUa(log.UserAgent)
+		//
+		//splittedVersion := delete_empty(strings.SplitN(_udger.ParseData["user_agent"]["ua_version"], ".", 2)[:1])
+		//if len(splittedVersion) == 0 {
+		//	userAgentFamilyCodeId = append(userAgentFamilyCodeId, _udger.ParseData["user_agent"]["ua_family_code"])
+		//} else {
+		//	userAgentFamilyCodeId = append(userAgentFamilyCodeId, _udger.ParseData["user_agent"]["ua_family_code"] + "" + strings.Join(splittedVersion, "."))
+		//}
+	}
+
+	return userAgentFamilyCodeId, userAgentVersion, trimmedValueData, trimmedOrderData
+}
+
+func delete_empty(s []string) []string {
+	var r []string
+	for _, str := range s {
+		if str != "" {
+			r = append(r, str)
+		}
+	}
+	return r
+}
+
+func GetLogsInPeriod(startLogTime int64, finishLogTime int64) []m.Log {
+
+	start := time.Unix(startLogTime, 0)
+	end := time.Unix(finishLogTime, 0)
 
 	db, err := gorm.Open("postgres", m.GetDBConnectionStr())
 	if err != nil {
-		Logger.Fatalf("parse_gz_logs.go - main: Failed to connect database: %s", err)
+		log.Fatalf("parse_gz_logs.go - main: Failed to connect database: %s", err)
 	}
 	defer db.Close()
 	if !db.HasTable(&m.Log{}) {
@@ -287,7 +521,7 @@ func GetLogsInPeriod(start_log_time int64, finish_log_time int64) []m.Log {
 	}
 
 	logs := []m.Log{}
-	db.Where("timestamp BETWEEN ? AND ?", start, end).Find(&logs)
+	db.Order("timestamp").Where("timestamp BETWEEN ? AND ?", start, end).Find(&logs)
 	return logs
 }
 

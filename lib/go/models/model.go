@@ -29,6 +29,7 @@ func GetDBConnectionStr() string {
 	return buffer.String()
 }
 
+//noinspection GoUnusedExportedFunction
 func GetUdger() string {
 	var buffer bytes.Buffer
 	buffer.WriteString("host=")
@@ -50,12 +51,12 @@ func GetUdger() string {
 
 func (m Model) JsonStrToMap(str string)  map[string]interface{}  {
 	data := []byte(str)
-	value_row:=make(map[string]interface{} )
+	valueRow:=make(map[string]interface{} )
 	jsonparser.ObjectEach(data, func(key []byte, value []byte, dataType jsonparser.ValueType, offset int) error {
-		value_row[ string(key)] = string(value)
+		valueRow[ string(key)] = string(value)
 		return nil
 	})
-	return value_row
+	return valueRow
 }
 
 func (m Model) IsJSONString(s string) bool {
@@ -63,7 +64,7 @@ func (m Model) IsJSONString(s string) bool {
 	return json.Unmarshal([]byte(s), &js) == nil
 }
 
-func TruncateTable(table_name string) {
+func TruncateTable(tableName string) {
 	db, err := gorm.Open("postgres", GetDBConnectionStr())
 	if err != nil {
 		panic("failed to connect database")
@@ -78,7 +79,7 @@ func TruncateTable(table_name string) {
 
 	// clear table
 	tx := db.Begin()
-	tx.Exec("DELETE FROM " + table_name + ";")
+	tx.Exec("DELETE FROM " + tableName + ";")
 	tx.Commit()
 	defer db.Close()
 }
