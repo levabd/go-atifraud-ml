@@ -14,10 +14,7 @@ func main() {
 	start, _ := carbon.Create(2017, 8,28,0,0,0,0,"Asia/Almaty")
 	end, _ := carbon.Create(2017, 9,7,23,0,0,0,"Asia/Almaty")
 
-	auVersionIntCodes, _, _, intFullFeatures, familyCodesList, logIds := services.PrepareDataUaFamilyCode(
-		start.Unix(),
-		end.Unix(),
-	)
+	auVersionIntCodes, _, _, intFullFeatures, familyCodesList, logIds := services.PrepareUaFamilyCodes(90000)
 
 	storePreparedData(intFullFeatures, auVersionIntCodes, familyCodesList, logIds)
 }
