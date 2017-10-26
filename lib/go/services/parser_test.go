@@ -108,23 +108,23 @@ func TestTimeCheckingParsing(t *testing.T) {
 	localAssert.Equal(true, result, "True must be given if line timestamp in neeeded period")
 }
 
-//func TestOneFileParsing(t *testing.T) {
-//	localAssert := assert.New(t)
-//
-//	start := time.Date(2016, 01, 17, 20, 34, 58, 651387237, time.UTC)
-//	finish := time.Date(2018, 03, 17, 20, 34, 58, 651387237, time.UTC)
-//
-//	path := filepath.Join(os.Getenv("APP_ROOT_DIR"), "data", "unit_tests_files", "2017-02-01.log")
-//
-//	//mainTable, valueTable, orderedTable := ParseSingleLog(path,
-//	//	true,
-//	//	true,
-//	//	start.Unix(),
-//	//	finish.Unix())
-//	//localAssert.Equal(8, len(mainTable), "main_table be 7 in len")
-//	//localAssert.Equal(8, len(valueTable), "value_table be 7 in len")
-//	//localAssert.Equal(8, len(orderedTable), "ordered_table be 7 in len")
-//}
+func TestOneFileParsing(t *testing.T) {
+	localAssert := assert.New(t)
+
+	start := time.Date(2016, 01, 17, 20, 34, 58, 651387237, time.UTC)
+	finish := time.Date(2018, 03, 17, 20, 34, 58, 651387237, time.UTC)
+
+	path := filepath.Join(os.Getenv("APP_ROOT_DIR"), "data", "unit_tests_files", "2017-02-01.log")
+
+	mainTable, valueTable, orderedTable := ParseSingleLog(path,
+		true,
+		true,
+		start.Unix(),
+		finish.Unix())
+	localAssert.Equal(8, len(mainTable), "main_table be 7 in len")
+	localAssert.Equal(8, len(valueTable), "value_table be 7 in len")
+	localAssert.Equal(8, len(orderedTable), "ordered_table be 7 in len")
+}
 
 func TestGetUa(t *testing.T) {
 	localAssert := assert.New(t)

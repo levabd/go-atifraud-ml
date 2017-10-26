@@ -223,7 +223,7 @@ func FitUserAgentCodes(userAgentList []string) (map[string]int, map[string]float
 	return userAgentIntCodes, userAgentFloatCodes
 }
 
-func StoreBrowsers(uaVersionList []string) (map[string]int, map[string]float64) {
+func  FitUserAgentVersions(uaVersionList []string) (map[string]int, map[string]float64) {
 
 	var (
 		uaVersionsIntCodes   = map[string]int {}
@@ -234,6 +234,7 @@ func StoreBrowsers(uaVersionList []string) (map[string]int, map[string]float64) 
 	index := 0
 
 	for _, uaVersion := range uaVersionList {
+
 		if _, ok := uaVersionsIntCodes[uaVersion]; !ok {
 			uaVersionsIntCodes[uaVersion] = index
 			uaVersionsFloatCodes[uaVersion] = float64(index)
@@ -248,7 +249,7 @@ func StoreBrowsers(uaVersionList []string) (map[string]int, map[string]float64) 
 
 	db, err := gorm.Open("postgres", m.GetDBConnectionStr())
 	if err != nil {
-		Logger.Fatalf("user_agent_helpers.go - StoreBrowsers: Failed to establish database connection: %s", err)
+		Logger.Fatalf("user_agent_helpers.go - FitUserAgentVersions: Failed to establish database connection: %s", err)
 	}
 	defer db.Close()
 	if !db.HasTable(&m.UAVersion{}) {
@@ -256,7 +257,7 @@ func StoreBrowsers(uaVersionList []string) (map[string]int, map[string]float64) 
 	}
 
 	// Clean last vectoriser
-	db.Exec("TRUNCATE TABLE ua_versions;")
+	db.Exec("TRUNCATE TABLE ua_browsers;")
 
 	// Insert new fitted vectoriser
 	tx := db.Begin()

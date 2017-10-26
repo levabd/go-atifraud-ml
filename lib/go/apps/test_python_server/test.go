@@ -101,11 +101,9 @@ func handleHeader(response []byte, uaFamilyCode string ) string {
 
 	for _, obj := range predictionResults {
 		for key, prediction := range obj {
-
 			if prediction <= threshold {
 				continue
 			}
-
 			if key == uaFamilyCode  {
 				return "human"
 			}

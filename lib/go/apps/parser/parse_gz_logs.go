@@ -155,9 +155,9 @@ func StartEducation() {
 		panic("PARSER_TIME_START and PARSER_TIME_END must be set in env file")
 	}
 
-	_, floatUAClasses, fullFeatures := s.PrepareData(helpers.StrToInt64(startTime), helpers.StrToInt64(endTime))
+	//_, floatUAClasses, fullFeatures := s.PrepareData(helpers.StrToInt64(startTime), helpers.StrToInt64(endTime))
 
-	println(len(floatUAClasses), len(fullFeatures))
+	//println(len(floatUAClasses), len(fullFeatures))
 }
 
 func init() {

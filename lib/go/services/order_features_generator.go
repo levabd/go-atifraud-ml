@@ -62,6 +62,7 @@ var (OrderPairsFeaturesOrder = map[string]int {
 func GetOrderFeatures(orderedHeadersTable []map[string]interface{}) [][]float64 {
 
 	var orderFeatures [][]float64
+
 	for _, orderedHeaders := range orderedHeadersTable {
 		orderFeatures = append(orderFeatures, GetSingleOrderFeatures(orderedHeaders))
 	}
@@ -70,6 +71,7 @@ func GetOrderFeatures(orderedHeadersTable []map[string]interface{}) [][]float64 
 }
 
 func GetSingleOrderFeatures(orderedHeaders map[string]interface{}) (orderFeatures []float64) {
+
 	orderFeatures = make([]float64, len(OrderPairsFeaturesOrder))
 	for combination := range GenerateCombinationsMap(orderedHeaders) {
 		orderFeatures[OrderPairsFeaturesOrder[DefineKeyFoPair(combination)]] = 1.0

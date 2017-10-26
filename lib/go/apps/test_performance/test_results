@@ -1,0 +1,46 @@
+Education sample: 90000
+
+-----------------------------------------------------------
+1 -- 2017-8-8 - 2017-8-28
+Bots for test: 2017-8-28 15h - 2017-9-2 8h ~ 30000
+Humans for test:  2017-9-2 8h - 2017-9-9 ~ 30000
+Threshold 0.030000
+Test sample size 60000
+1 Error - 4.015000%. human as bot: human 27591, bots 2409
+2 Error - 0.100000%. bot as human: human 60, bots 29940
+
+-----------------------------------------------------------
+2 -- 2017-8-28 - 2017-9-7 23h
+Bots for test: 2017-9-7 23h - 2017-9-10 23h ~ 30000
+Humans for test: 2017-9-10 23h - 2017-9-13 10h ~ 30000
+Threshold 0.030000
+Test sample size 60000
+1 Error - 4.933333%. human as bot: human 27040, bots 2960
+2 Error - 8.455000%. bot as human: human 5073, bots 24927
+
+-----------------------------------------------------------
+3 -- 2017-9-7 23h - 2017-9-15 14h
+Bots for test: 2017-9-15 14h - 2017-9-18 12h ~ 30000
+Humans for test: 2017-9-18 12h - 2017-9-20 17h ~ 30000
+Threshold 0.030000
+Test sample size 60000
+1 Error: 4.526667%. human as bot: human 27284, bots 2716
+2 Error: 0.886667%. bot as human: human 532, bots 29468
+
+-----------------------------------------------------------
+4 -- 2017-9-15 14h - 2017-9-23 8h
+Bots for test:  2017-9-23 8h - 2017-9-26 ~ 30000
+Humans for test: 2017-9-26 - 2017-9-28 17h ~ 30000
+Threshold 0.030000
+Test sample size 60000
+1 Error: 5.558333%. human as bot: human 26665, bots 3335
+2 Error: 0.498333%. bot as human: human 299, bots 29701
+
+-----------------------------------------------------------
+5 -- 2017-9-23 8h - 2017-10-1 14h
+Bots for test: 2017-10-1 14h - 2017-10-03 22h ~ 30000
+Humans for test: 2017-10-03 22h - 2017-10-6 13h ~ 30000
+Threshold 0.030000
+Test sample size 60000
+1 Error: 5.460000%. human as bot: human 26724, bots 3276
+2 Error: 1.411667%. bot as human: human 847, bots 29153

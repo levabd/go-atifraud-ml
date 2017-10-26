@@ -8,5 +8,5 @@ type UAVersion struct {
 }
 
 func (UAVersion) TableName() string {
-	return "ua_versions"
+	return "ua_browsers"
 }

@@ -433,12 +433,21 @@ func PrepareDataUaVersion(
 	headersId []uint) {
 
 	headersId, browserList, trimmedValueData, trimmedOrderData := GetTrimmedLodMapsForPeriodWithUaFamilyCode(startLogTime, finishLogTime, _udger)
+	println("PrepareData: after GetTrimmedLodMapsForPeriod. len(browserList): ", len(browserList))
 
 	valuesFeaturesOrder := FitValuesFeaturesOrder(trimmedValueData)
+	//println("PrepareData: after FitValuesFeaturesOrder. len(valuesFeaturesOrder): ", len(valuesFeaturesOrder))
 
 	floatFullFeatures, intFullFeatures = GetFullFeatures(trimmedOrderData, trimmedValueData, valuesFeaturesOrder)
+	println("PrepareData: after GetFullFeatures. len(floatFullFeatures): ", len(floatFullFeatures))
 
-	StoreBrowsers(browserList)
+	uaVersionIntCodes, _ := FitUserAgentVersions(browserList)
+	println("PrepareData: after browserList. len(uaVersionIntCodes): ", len(browserList))
+	println("PrepareData: after FitUserAgentVersions. len(uaVersionIntCodes): ", len(uaVersionIntCodes))
+
+	//intUaVersionClasses, floatUaVersionClasses := GetUAClasses(browserList, uaVersionIntCodes, userAgentFloatCodes)
+	//intUaVersionClasses, floatUaVersionClasses = GetUaVersionsClassesOneVsRest(browserList, uaVersionIntCodes)
+	println("PrepareData: after GetUaVersionsClassesOneVsRest. len(intUaVersionClasses): ", len(intUaVersionClasses))
 
 	return intUaVersionClasses, floatUaVersionClasses, floatFullFeatures, intFullFeatures, browserList, headersId
 }

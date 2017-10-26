@@ -1,7 +1,6 @@
 import time
 import os
 import sys
-
 import numpy as np
 cimport numpy as np
 import redis
@@ -42,10 +41,13 @@ class SimpleProgressBar(object):
             self.state = value
         self._display()
 
-cdef get_sparse_matrix(table_name):
+cpdef run_education():
+    cdef int start = time.time()
+
+    print("JOBLIB_TEMP_FOLDER: ", os.environ["JOBLIB_TEMP_FOLDER"])
 
     cursor = conn.cursor()
-    cursor.execute("""select * from """ + table_name + """; """)
+    cursor.execute("""select * from features; """)
 
     rows = []
     cols = []
@@ -55,35 +57,17 @@ cdef get_sparse_matrix(table_name):
         cols.append(record[2])
         data.append(1)
 
-    return sparse.csr_matrix((data, (rows, cols)), dtype=np.int8)
+    sm_features= sparse.csr_matrix((data, (rows, cols)), dtype=np.int8)
 
-cpdef run_education():
-    cdef int start = time.time()
-
-    print("JOBLIB_TEMP_FOLDER: ", os.environ["JOBLIB_TEMP_FOLDER"])
-
-    sm_features = get_sparse_matrix("features")
     if sm_features == None:
         print("Cant educate - cant establish internet connection")
         return
 
-    # get y
     cursor = conn.cursor()
-    # cursor.execute("""select * from ua_versions;""")
-    # browser_list = []
-    # for record in cursor.fetchall():
-    #     browser_list.append(record[1])
-
     cursor.execute("""select * from browsers;""")
     browsers =[]
     for record in cursor.fetchall():
         browsers.append(record[1])
-
-    print("sm_features.shape[0]", sm_features.shape[0])
-    print("browsers len", len(browsers))
-
-    # print("first browser from browser_list ", browser_list[0])
-    # print("browser_list len", len(browser_list))
 
     try:
         r = redis.StrictRedis(host='localhost', port=6379, db=0)
@@ -91,15 +75,15 @@ cpdef run_education():
         print("Unable to establish redis connection")
 
     print("Education started")
+
     smart_clf = OneVsRestClassifier(LogisticRegression(C=100), n_jobs=-1)
     smart_clf.fit(sm_features, browsers)
-
-    print("smart_clf.classes_", smart_clf.classes_)
-    print("smart_clf.classes_ len", len(smart_clf.classes_))
 
     r.set("smart_clf_features_column_length", sm_features.shape[1])
     r.set("smart_clf_browser", pickle.dumps(smart_clf))
     conn.close()
+
+    print("Education finished")
     print("Model education took {} seconds".format(time.time() - start))
 
 run_education()

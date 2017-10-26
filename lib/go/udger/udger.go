@@ -133,19 +133,6 @@ func (udger *Udger) init() error {
 		udger.OS[operationSystem.OsId] = operationSystem
 	}
 
-	//udger.DB.Raw(DevicesSql).Scan(&udger.Devices);
-	//for _, device := range udger.Devices {
-	//	var d rexData
-	//
-	//	d.Regex = udger.cleanRegex(device.Regstring)
-	//	r, err := pcre.Compile(d.Regex, pcre.CASELESS)
-	//	if err != nil {
-	//		return errors.New(err.String())
-	//	}
-	//	d.RegexCompiled = r
-	//	udger.rexDevices = append(udger.rexClients, d)
-	//}
-
 	var ips []Ip
 	udger.IPS = make(map[string]string)
 
@@ -190,9 +177,6 @@ func (udger *Udger) init() error {
 	for _, crawler := range crawlers {
 		udger.Crawlers[crawler.UaString] = crawler
 	}
-
-	//println("crawlers len", len(crawlers))
-	//println("udger.Crawlers len", len(udger.Crawlers))
 
 	return nil
 }
@@ -262,40 +246,12 @@ func (udger *Udger) findData(ua string, data []rexData, withVersion bool) (idx i
 }
 
 func (udger Udger) ParseUa(ua string) (map[string]map[string]string, error) {
-	//start := time.Now()
+
 	if ua != "" {
-		var (
-		//client_id int64 = 0
-		//client_class_id int64 = -1
-		//os_id int64 = 0
-		//deviceclass_id  int64 = 0
-		)
 
 		udger.ParseData["user_agent"]["ua_string"] = ua;
 		udger.ParseData["user_agent"]["ua_class"] = "Unrecognized";
 		udger.ParseData["user_agent"]["ua_class_code"] = "unrecognized";
-		//var crawlers []Crawler
-		// crawler
-		//udger.DB.Raw(fmt.Sprintf(`SELECT
-		//	  udger_crawler_list.id AS botid,
-		//	  name,
-		//	  ver,
-		//	  ver_major,
-		//	  last_seen,
-		//	  respect_robotstxt,
-		//	  family,
-		//	  family_code,
-		//	  family_homepage,
-		//	  family_icon,
-		//	  vendor,
-		//	  vendor_code,
-		//	  vendor_homepage,
-		//	  crawler_classification,
-		//	  crawler_classification_code
-		//	FROM udger_crawler_list
-		//	  LEFT JOIN udger_crawler_class ON udger_crawler_class.id=udger_crawler_list.class_id
-		//	WHERE ua_string = '%s'`, ua)).Scan(&crawlers);
-
 
 		if crawler, ok := udger.Crawlers[ua]; ok {
 
@@ -336,8 +292,6 @@ func (udger Udger) ParseUa(ua string) (map[string]map[string]string, error) {
 			}
 
 			if client, ok := udger.Clients[clientID]; ok {
-				//client_id = client.ClientId
-				//client_class_id = client.ClassId
 				udger.ParseData["user_agent"]["ua_class"] = client.ClientClassification
 				udger.ParseData["user_agent"]["ua_class_code"] = client.ClientClassificationCode
 
@@ -362,161 +316,9 @@ func (udger Udger) ParseUa(ua string) (map[string]map[string]string, error) {
 				udger.ParseData["user_agent"]["ua_family_icon_big"] = client.IconBig
 				udger.ParseData["user_agent"]["ua_family_info_url"] = "https://udger.com/resources/ua-list/browser-detail?browser=" + client.Name;
 				udger.ParseData["user_agent"]["ua_engine"] = client.Engine
-
 			}
-
-			// os
-			//osID, _, err := udger.findData(ua, udger.rexOS, false)
-			//if err != nil {
-			//	return nil, err
-			//}
-			//
-			//if client_os, ok := udger.OS[osID]; ok {
-			//	//os_id = client_os.OsId
-			//	udger.ParseData["user_agent"]["os"] = client_os.Name
-			//	udger.ParseData["user_agent"]["os_code"] = client_os.NameCode
-			//	udger.ParseData["user_agent"]["os_homepage"] = client_os.Homepage
-			//	udger.ParseData["user_agent"]["os_icon"] = client_os.Icon
-			//	udger.ParseData["user_agent"]["os_icon_big"] = client_os.IconBig
-			//	udger.ParseData["user_agent"]["os_info_url"] = "https://udger.com/resources/ua-list/client-detail?client=" + client_os.Name
-			//	udger.ParseData["user_agent"]["os_family"] = client_os.Family
-			//	udger.ParseData["user_agent"]["os_family_code"] = client_os.FamilyCode
-			//	udger.ParseData["user_agent"]["os_family_vendor"] = client_os.Vendor
-			//	udger.ParseData["user_agent"]["os_family_vendor_code"] = client_os.VendorCode
-			//	udger.ParseData["user_agent"]["os_family_vendor_homepage"] = client_os.VendorHomepage
-			//}
-
-			// client_os_relation
-			//if os_id == 0 && client_id != 0 {
-			//
-			//	var clientOsResults []ClientOsRelation
-			//	udger.DB.Raw(fmt.Sprintf(`SELECT
-			//	  os_id,
-			//	  family,
-			//	  family_code,
-			//	  name,
-			//	  name_code,
-			//	  homepage,
-			//	  icon,
-			//	  icon_big,
-			//	  vendor,
-			//	  vendor_code,
-			//	  vendor_homepage
-			//	FROM udger_client_os_relation
-			//	  JOIN udger_os_list ON udger_os_list.id = udger_client_os_relation.os_id
-			//	WHERE client_id = %v`, client_id)).Scan(&clientOsResults);
-			//	if len(clientOsResults) > 0 {
-			//		clientOsResult := clientOsResults[0]
-			//		os_id = clientOsResult.OsId
-			//		udger.ParseData["user_agent"]["os"] = clientOsResult.Name
-			//		udger.ParseData["user_agent"]["os_code"] = clientOsResult.NameCode
-			//		udger.ParseData["user_agent"]["os_homepage"] = clientOsResult.Homepage
-			//		udger.ParseData["user_agent"]["os_icon"] = clientOsResult.Icon
-			//		udger.ParseData["user_agent"]["os_icon_big"] = clientOsResult.IconBig
-			//		udger.ParseData["user_agent"]["os_info_url"] = "https://udger.com/resources/ua-list/client-detail?client=" + clientOsResult.Name
-			//		udger.ParseData["user_agent"]["os_family"] = clientOsResult.Family
-			//		udger.ParseData["user_agent"]["os_family_code"] = clientOsResult.FamilyCode
-			//		udger.ParseData["user_agent"]["os_family_vendor"] = clientOsResult.Vendor
-			//		udger.ParseData["user_agent"]["os_family_vendor_code"] = clientOsResult.VendorCode
-			//		udger.ParseData["user_agent"]["os_family_vendor_homepage"] = clientOsResult.VendorHomepage
-			//	}
-			//}
-
-			//client
-			//for _, device := range (udger.Devices) {
-			//	r, _ := regexp.Compile(device.Regstring)
-			//	// Using FindStringSubmatch you are able to access the
-			//	// individual capturing groups
-			//	if match := r.FindStringSubmatch(ua); len(match) > 0 {
-			//		deviceclass_id = device.DeviceclassId
-			//		udger.ParseData["user_agent"]["device_class"] = device.Name
-			//		udger.ParseData["user_agent"]["device_class_code"] = device.NameCode
-			//		udger.ParseData["user_agent"]["device_class_icon"] = device.Icon
-			//		udger.ParseData["user_agent"]["device_class_icon_big"] = device.IconBig
-			//		udger.ParseData["user_agent"]["device_class_info_url"] = "https://udger.com/resources/ua-list/client-detail?client=" + device.Name
-			//		break
-			//	}
-			//}
-
-			//if (deviceclass_id == 0 && client_class_id != -1) {
-			//	var _devices []Device
-			//	udger.DB.Raw(fmt.Sprintf(`SELECT
-			//		  deviceclass_id,
-			//		  name,
-			//		  name_code,
-			//		  icon,
-			//		  icon_big
-			//		FROM udger_deviceclass_list
-			//		  JOIN udger_client_class ON udger_client_class.deviceclass_id = udger_deviceclass_list.id
-			//		WHERE udger_client_class.id = %v`, client_class_id)).Scan(&_devices);
-			//	if len(_devices) > 0 {
-			//		device := _devices[0]
-			//		deviceclass_id = device.DeviceclassId
-			//		udger.ParseData["user_agent"]["device_class"] = device.Name
-			//		udger.ParseData["user_agent"]["device_class_code"] = device.NameCode
-			//		udger.ParseData["user_agent"]["device_class_icon"] = device.Icon
-			//		udger.ParseData["user_agent"]["device_class_icon_big"] = device.IconBig
-			//		udger.ParseData["user_agent"]["device_class_info_url"] = "https://udger.com/resources/ua-list/client-detail?client=" + device.Name
-			//	}
-			//}
-
-			// todo: implement this
-			// client marketname
-			//if uaFamilyCode, ok := udger.ParseData["user_agent"]["os_family_code"]; ok {
-			//	if uaOsCode, ok := udger.ParseData["user_agent"]["os_code"]; ok {
-			//
-			//		var deviceMarketNames []DeviceMarketName
-			//		udger.DB.Raw(fmt.Sprintf(`SELECT
-			//			  id,
-			//			  regstring
-			//			FROM udger_devicename_regex
-			//			WHERE
-			//			  ((os_family_code = "%s" AND os_code = "%s")
-			//			   OR
-			//			   (os_family_code = "%s" AND os_code = "%s"))
-			//			ORDER BY sequence`, uaFamilyCode, uaOsCode, uaFamilyCode, uaOsCode)).Scan(&deviceMarketNames);
-			//		for _, deviceMarketName := range (deviceMarketNames) {
-			//			r, _ := regexp.Compile(deviceMarketName.Regstring)
-			//
-			//			// Using FindStringSubmatch you are able to access the
-			//			// individual capturing groups
-			//			for _, match := range r.FindStringSubmatch(ua) {
-			//
-			//				if string(match[1]) != "" {
-			//					value := match[1]
-			//
-			//					var deviceBrands []DeviceBrand
-			//					udger.DB.Raw(fmt.Sprintf(`SELECT
-			//						  marketname,
-			//						  brand_code,
-			//						  brand,
-			//						  brand_url,
-			//						  icon,
-			//						  icon_big
-			//						FROM udger_devicename_list
-			//						  JOIN udger_devicename_brand ON udger_devicename_brand.id = udger_devicename_list.brand_id
-			//						WHERE regex_id = &v AND code = '%s' COLLATE NOCASE`,
-			//						deviceMarketName.Id,
-			//						html.EscapeString(strings.Trim(string(value), "")))).Scan(&deviceBrands);
-			//					if len(deviceBrands) > 0 {
-			//						firstDeviceBrand := deviceBrands[0]
-			//						udger.ParseData["user_agent"]["device_marketname"] = firstDeviceBrand.Marketname
-			//						udger.ParseData["user_agent"]["device_brand"] = firstDeviceBrand.Brand
-			//						udger.ParseData["user_agent"]["device_brand_code"] = firstDeviceBrand.BrandCode
-			//						udger.ParseData["user_agent"]["device_brand_homepage"] = firstDeviceBrand.brandUrl
-			//						udger.ParseData["user_agent"]["device_brand_icon"] = firstDeviceBrand.Icon
-			//						udger.ParseData["user_agent"]["device_brand_icon_big"] = firstDeviceBrand.Icon_big
-			//						udger.ParseData["user_agent"]["device_brand_info_url"] = "https://udger.com/resources/ua-list/deviceMarketNames-brand-detail?brand=" + firstDeviceBrand.BrandCode
-			//					}
-			//				}
-			//				break
-			//			}
-			//		}
-			//	}
-			//}
 		}
 	}
-	//fmt.Println(fmt.Sprintf("parse ua took %s", time.Since(start)))
 	return udger.ParseData, nil
 }
 
@@ -724,7 +526,6 @@ var crawlerWords = []string{
 func UaContainsCrawler(s string) bool {
 	for _, b := range crawlerWords {
 		if b == s || strings.Contains(s, b) || strings.HasPrefix(s, b) || strings.HasSuffix(s, b) {
-			//log.Println("Contain crawler: ", s)
 			return true
 		}
 	}

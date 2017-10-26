@@ -18,10 +18,9 @@ import  (
 )
 
 var (
-	addr                = flag.String("addr", "localhost:8082", "Thost:port to listen to")
+	addr                = flag.String("addr", "localhost:8082", "host:port to listen to")
 	compress            = flag.Bool("compress", false, "Whether to enable transparent response compression")
 	valuesFeaturesOrder = s.LoadFittedValuesFeaturesOrder()
-	uaVersionStrings    = s.LoadFittedUaVersionDeCoder()
 	db                  *gorm.DB
 	udger_instance      *udger.Udger = nil
 	connection                       = &fasthttp.Client{}
@@ -60,8 +59,8 @@ func main() {
 	if err := fasthttp.ListenAndServe(*addr, h); err != nil {
 		log.Fatalf("Error in ListenAndServe: %s", err)
 	}
-	defer  req.ConnectionClose()
-	defer  resp.ConnectionClose()
+	defer req.ConnectionClose()
+	defer resp.ConnectionClose()
 }
 
 func requestHandler(ctx *fasthttp.RequestCtx) {
@@ -79,7 +78,6 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 
 	var agent = handleHeader(body)
 
-	// todo USE agent
 	ctx.Response.Header.Set("Connection", "keep-alive")
 	ctx.Response.SetBodyString(agent)
 }
