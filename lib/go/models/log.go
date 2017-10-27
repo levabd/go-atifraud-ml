@@ -66,13 +66,21 @@ func IsInImportantOrdersKeySet(category string) bool {
 	switch category {
 	case
 		"Upgrade-Insecure-Requests",
+		"upgrade-insecure-requests",
 		"Accept",
+		"accept",
 		"If-Modified-Since",
+		"if-modified-since",
 		"Host",
+		"host",
 		"Connection",
+		"connection",
 		"User-Agent",
+		"user-agent",
 		"From",
-		"Accept-Encoding":
+		"from",
+		"Accept-Encoding",
+		"accept-encoding":
 		return true
 	}
 	return false
@@ -82,8 +90,11 @@ func IsInImportantValueKeySet(category string) bool {
 	switch category {
 	case
 		"Accept",
+		"accept",
 		"Accept-Charset",
-		"Accept-Encoding":
+		"accept-charset",
+		"Accept-Encoding",
+		"accept-encoding":
 		return true
 	}
 	return false

@@ -7,13 +7,9 @@ import (
 	"gopkg.in/cheggaaa/pb.v1"
 	"sync"
 	"github.com/levabd/go-atifraud-ml/lib/go/services"
-	"github.com/uniplaces/carbon"
 )
 
 func main() {
-	start, _ := carbon.Create(2017, 8,28,0,0,0,0,"Asia/Almaty")
-	end, _ := carbon.Create(2017, 9,7,23,0,0,0,"Asia/Almaty")
-
 	auVersionIntCodes, _, _, intFullFeatures, familyCodesList, logIds := services.PrepareUaFamilyCodes(90000)
 
 	storePreparedData(intFullFeatures, auVersionIntCodes, familyCodesList, logIds)

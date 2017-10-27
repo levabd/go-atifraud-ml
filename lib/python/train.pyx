@@ -86,4 +86,5 @@ cpdef run_education():
     print("Education finished")
     print("Model education took {} seconds".format(time.time() - start))
 
-run_education()
+if __name__ == '__main__':
+    run_education()

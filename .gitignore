@@ -3,3 +3,7 @@ tmp
 lib/go/parsers/data/
 .gitignore
 .log
+data/logs_go/parse_gz_logs.log
+nohup.out
+parse_gz_logs
+

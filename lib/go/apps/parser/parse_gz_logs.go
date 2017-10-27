@@ -71,6 +71,8 @@ func main() {
 	finishLogTime := carbon.Now().Unix()
 	//finishLogTime := helpers.StrToInt64(os.Getenv("PARSER_TIME_END"))
 
+	println( m.GetDBConnectionStr())
+
 	db, err := gorm.Open("postgres", m.GetDBConnectionStr())
 	if err != nil {
 		fmt.Println(fmt.Printf("parse_gz_logs.go: main - Failed to connect database: %s ", err))

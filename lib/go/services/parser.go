@@ -102,38 +102,48 @@ func HandleLogLine(
 			return nil
 		})
 
-		if valueRow["User-Agent"] == nil {
+		if valueRow["User-Agent"] == nil && valueRow["user-agent"] == nil && valueRow["user_agent"] == nil {
 			log.Printf("parsers.ParseAndStoreSingleGzLogInDb: No user agent in headers %+v", valueRow)
 			return false, nil, nil, nil
 		}
 
-		// define crawler in User-Agent
-		if ua, ok := valueRow["User-Agent"].(string); ok {
+		ua := ""
 
-			if ua == "" {
+		if _ua, ok := valueRow["User-Agent"].(string); ok {
+			ua = _ua
+		}
+
+		if _ua, ok := valueRow["user-agent"].(string); ok && ua != "" {
+			ua = _ua
+		}
+
+		if _ua, ok := valueRow["user_agent"].(string); ok && ua != ""{
+			ua = _ua
+		}
+
+		if ua == "" {
+			return false, nil, nil, nil
+		}
+
+		if filterCrawlers && udger.IsCrawler(ip, ua, false) {
+			//log.Println("ua is crawler: ", elements[1], ua)
+			return false, nil, nil, nil
+		}
+
+		if needUaParsing {
+			uaObj := udger.ParseData["user_agent"]
+
+			if uaObj["ua_family_code"] == "" {
+				log.Println("ua_family_code is empty: ", elements[1], ua)
 				return false, nil, nil, nil
 			}
 
-			if filterCrawlers && udger.IsCrawler(ip, ua, false) {
-				//log.Println("ua is crawler: ", elements[1], ua)
-				return false, nil, nil, nil
-			}
-
-			if needUaParsing {
-				uaObj := udger.ParseData["user_agent"]
-
-				//if uaObj["ua_family_code"] == "" || uaObj["os_family_code"] == "" {
-				//	log.Println("ua_family_code || os_family_code is empty: ", elements[1], ua)
-				//	return false, nil, nil, nil
-				//}
-
-				mainRow["ua_family_code"] = uaObj["ua_family_code"]
-				mainRow["ua_version"] = uaObj["ua_family_code"] + " " + uaObj["ua_version"]
-				mainRow["ua_class_code"] = uaObj["ua_class_code"]
-				mainRow["device_class_code"] = uaObj["device_class_code"]
-				mainRow["os_family_code"] = uaObj["os_family_code"]
-				mainRow["os_code"] = uaObj["os_code"]
-			}
+			mainRow["ua_family_code"] = uaObj["ua_family_code"]
+			mainRow["ua_version"] = uaObj["ua_family_code"] + " " + uaObj["ua_version"]
+			mainRow["ua_class_code"] = uaObj["ua_class_code"]
+			mainRow["device_class_code"] = uaObj["device_class_code"]
+			mainRow["os_family_code"] = uaObj["os_family_code"]
+			mainRow["os_code"] = uaObj["os_code"]
 		}
 
 		mainRow["timestamp"] = timestamp
@@ -260,7 +270,7 @@ func ParseAndStoreSingleGzLogInDb(
 	lines := strings.Split(string(bytesOfString), "\n")
 
 	println("lines len", len(lines))
-	i:=0
+	i := 0
 	for index, line := range lines {
 
 		splittedLine := strings.SplitN(line, ",", 3)
@@ -463,6 +473,8 @@ func GetTrimmedDataWithUaFamilyCode(limit int64, ) ([]uint, []string, []map[stri
 	)
 
 	println("Logs in sample:", len(logs))
+	println("Educate from:", logs[len(logs)-1].Timestamp.Format("2006-01-02 15:04:05")  )
+	println("Educate till:", logs[0].Timestamp.Format("2006-01-02 15:04:05"))
 
 	for _, _log := range logs {
 		trimmedValueData = append(trimmedValueData, _log.TrimValueData())
