@@ -3,6 +3,11 @@ package main
 import (
 	"log"
 	"github.com/valyala/fasthttp"
+	"os/exec"
+	"fmt"
+	"os"
+	"strings"
+	"github.com/levabd/go-atifraud-ml/lib/go/helpers"
 )
 
 var (
@@ -10,24 +15,27 @@ var (
 	req                              = fasthttp.AcquireRequest()
 	resp                             = fasthttp.AcquireResponse()
 )
-
+func init() {
+	err := helpers.LoadEnv()
+	if err != nil {
+		log.Fatalln(err)
+	}
+}
 func main() {
-	log.Println("Start reloading model on prediction server")
 
-	_response := doRequest("http://0.0.0.0:8081/reload")
+	APP_ROOT_DIR:=os.Getenv("APP_ROOT_DIR")
 
-	if string(_response) == "reloaded" {
-		log.Println("Prediction model reloaded on python server")
+	cmd := exec.Command(APP_ROOT_DIR+"/lib/python/train")
+	cmd.Wait()
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Println("error python exec: ", err)
+		os.Exit(-1)
+	}
+	if strings.Contains(string(out), "Education finished") {
+		log.Println("Education finished")
 	} else {
-		log.Println("Problem while reloading prediction model on python server", string(_response))
+		log.Println("Problem detected while educate model")
 	}
 }
 
-func doRequest(url string) []byte {
-
-	req.SetRequestURI(url)
-
-	connection.Do(req, resp)
-
-	return resp.Body()
-}

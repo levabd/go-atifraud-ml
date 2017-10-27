@@ -17,7 +17,7 @@ warnings.filterwarnings("ignore")
 os.environ["JOBLIB_TEMP_FOLDER"] = "/tmp"
 #os.environ["JOBLIB_TEMP_FOLDER"] = "/media/levabd/ScienceProjects/data"
 try:
-    conn = psycopg2.connect("dbname='antifraud' user='antifraud' host='localhost' password='password'")
+    conn = psycopg2.connect("dbname='antifraud' user='antifraud' host='localhost' password=''")
 except:
     print ("I am unable to connect to the database")
 
