@@ -18,9 +18,9 @@ func main() {
 
 	var req fasthttp.Request
 	req.Header.SetMethod("POST")
-	req.SetRequestURI("http://0.0.0.0:8082")
+	req.SetRequestURI("http://0.0.0.0:8082/")
 	req.Header.Set("Host", "localhost")
-	req.Header.Set("Body-Header-Ip", "91.203.170.233")
+	req.Header.Set("X-Real-IP", "37.187.141.25")
 	req.SetBodyString(`Host: servicer.mgid.com
 User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.75 Safari/537.36
 Upgrade-Insecure-Requests: 1

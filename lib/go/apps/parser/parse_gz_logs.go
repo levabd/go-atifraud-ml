@@ -69,9 +69,6 @@ func main() {
 	needAllFileParsing := needAllFilesParsing(os.Args)
 	startLogTime := helpers.StrToInt64(os.Getenv("PARSER_TIME_START"))
 	finishLogTime := carbon.Now().Unix()
-	//finishLogTime := helpers.StrToInt64(os.Getenv("PARSER_TIME_END"))
-
-	println( m.GetDBConnectionStr())
 
 	db, err := gorm.Open("postgres", m.GetDBConnectionStr())
 	if err != nil {

@@ -125,7 +125,7 @@ func HandleLogLine(
 			return false, nil, nil, nil
 		}
 
-		if filterCrawlers && udger.IsCrawler(ip, ua, false) {
+		if filterCrawlers && udger.IsCrawler(ip, ua) {
 			//log.Println("ua is crawler: ", elements[1], ua)
 			return false, nil, nil, nil
 		}
@@ -269,7 +269,6 @@ func ParseAndStoreSingleGzLogInDb(
 	bytesOfString, _ := h.ReadGzFile(filePath)
 	lines := strings.Split(string(bytesOfString), "\n")
 
-	println("lines len", len(lines))
 	i := 0
 	for index, line := range lines {
 
@@ -318,8 +317,6 @@ func ParseAndStoreSingleGzLogInDb(
 		}
 	}
 
-	println("stored", i)
-
 	return nil
 }
 
@@ -337,9 +334,11 @@ func ParseAndGetDataFromSingleGzFile(
 	if !db.HasTable(&m.Log{}) {
 		db.AutoMigrate(&m.Log{})
 	}
+
 	bytesOfString, _ := h.ReadGzFile(filePath)
 	lines := strings.Split(string(bytesOfString), "\n")
 	lines = lines[:10]
+
 	for index, line := range lines {
 
 		splittedLine := strings.SplitN(line, ",", 3)

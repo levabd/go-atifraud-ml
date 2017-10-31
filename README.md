@@ -72,6 +72,7 @@ Make log files
 ```
 touch data/logs_go/antifraud_server.log
 touch data/logs_go/prediction_server.log
+touch data/logs_go/parse_gz_logs.log.log
 ```
 
 Configure <b>crontab</b> for scheduling education

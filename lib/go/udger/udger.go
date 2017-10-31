@@ -364,12 +364,9 @@ func getIpVersion(ipAddress string) string {
 	return ""
 }
 
-func (udger *Udger) IsCrawler(ip string, ua string, onlyUaParsing bool) bool {
+func (udger *Udger) IsCrawler(ip string, ua string) bool {
 	udger.ParseUa(ua)
-
-	if onlyUaParsing == false{
-		udger.ParseIp(ip)
-	}
+	udger.ParseIp(ip)
 
 	if  udger.ParseData["ip_address"]["ip_classification_code"] == "crawler" ||
 		( udger.ParseData["user_agent"]["ua_class_code"] == "crawler" ||

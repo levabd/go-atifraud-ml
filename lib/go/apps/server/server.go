@@ -64,8 +64,8 @@ func main() {
 		h = fasthttp.CompressHandler(h)
 	}
 
-	log.Println("Strarted listening server on address: ", *addr)
-	log.Println("Prediction requests will be send to: ", *addrPredictionServer)
+	log.Println("Strarted listening server on address:", *addr)
+	log.Println("Prediction requests will be send to:", *addrPredictionServer)
 
 	server := &fasthttp.Server{
 		Handler:            h,
@@ -89,25 +89,27 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 	}
 
 	var body = ctx.PostBody()
+	var clientIp = ctx.Request.Header.Peek("X-Real-IP")
 
 	if len(body) == 0 {
 		log.Println("Post body is")
 		return
 	}
 
-	var agent = handleHeader(body)
+	var agent = handleHeader(clientIp, body)
 
 	ctx.Response.SetBodyString(agent)
 }
 
-func handleHeader(response []byte) string {
+func handleHeader(clientIp []byte, response []byte) string {
+
 	userAgent, valueData, orderData := handleLogLine(response)
 
-	if userAgent == "" {
+	if userAgent == ""  && string(clientIp)  == ""{
 		return ReturnUnknownWord
 	}
 
-	if udger_instance.IsCrawler("", userAgent, true) {
+	if udger_instance.IsCrawler(string(clientIp), userAgent) {
 		return ReturnCrawlerWord
 	}
 
