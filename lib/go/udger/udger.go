@@ -245,7 +245,9 @@ func (udger *Udger) findData(ua string, data []rexData, withVersion bool) (idx i
 	return -1, "", nil
 }
 
-func (udger Udger) ParseUa(ua string) (map[string]map[string]string, error) {
+func (udger *Udger) ParseUa(ua string) (map[string]map[string]string, error) {
+
+	udger.mux.Lock()
 
 	if ua != "" {
 
@@ -319,10 +321,14 @@ func (udger Udger) ParseUa(ua string) (map[string]map[string]string, error) {
 			}
 		}
 	}
+	udger.mux.Unlock()
 	return udger.ParseData, nil
 }
 
 func (udger *Udger) ParseIp(ip string) map[string]map[string]string {
+
+	udger.mux.Lock()
+	defer udger.mux.Unlock()
 
 	if ip == "" {
 		return udger.ParseData

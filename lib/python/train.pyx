@@ -76,7 +76,7 @@ cpdef run_education():
 
     print("Education started")
 
-    smart_clf = OneVsRestClassifier(LogisticRegression(C=100), n_jobs=-1)
+    smart_clf = OneVsRestClassifier(LogisticRegression(C=100, n_jobs=-1), n_jobs=-1)
     smart_clf.fit(sm_features, browsers)
 
     r.set("smart_clf_features_column_length", sm_features.shape[1])

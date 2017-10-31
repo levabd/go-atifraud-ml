@@ -5,7 +5,6 @@ import (
 	"log"
 	"github.com/valyala/fasthttp"
 	"fmt"
-	"github.com/buger/jsonparser"
 	"encoding/json"
 	s "github.com/levabd/go-atifraud-ml/lib/go/services"
 	m "github.com/levabd/go-atifraud-ml/lib/go/models"
@@ -14,17 +13,28 @@ import (
 	"os"
 	"path/filepath"
 	"github.com/levabd/go-atifraud-ml/lib/go/udger"
+	"sync"
 )
 
 var (
-	addr                = flag.String("addr", "localhost:8082", "host:port to listen to")
-	compress            = flag.Bool("compress", false, "Whether to enable transparent response compression")
-	valuesFeaturesOrder = s.LoadFittedValuesFeaturesOrder()
-	db                  *gorm.DB
-	udger_instance      *udger.Udger = nil
-	connection                       = &fasthttp.Client{}
-	req                              = fasthttp.AcquireRequest()
-	resp                             = fasthttp.AcquireResponse()
+	addr                 = flag.String("addr", "0.0.0.0:8082", "host:port to listen to")
+	addrPredictionServer = flag.String("addrPredictionServer", "0.0.0.0:8081", "host:port to make request on prediction server")
+	compress             = flag.Bool("compress", false, "Whether to enable transparent response compression")
+	valuesFeaturesOrder  = s.LoadFittedValuesFeaturesOrder()
+	db                   *gorm.DB
+	udger_instance       *udger.Udger = nil
+	connection                        = &fasthttp.Client{}
+	req                               = *fasthttp.AcquireRequest()
+	resp                              = *fasthttp.AcquireResponse()
+	mux                  sync.Mutex
+)
+
+const (
+	PredictionThreshold = 0.03
+	ReturnCrawlerWord   = "crawler"
+	ReturnHumanWord     = "human"
+	ReturnBotWord       = "bot"
+	ReturnUnknownWord   = "unknown_no_user_agent"
 )
 
 func init() {
@@ -55,14 +65,24 @@ func main() {
 	}
 
 	log.Println("Strarted listening server on address: ", *addr)
-	if err := fasthttp.ListenAndServe(*addr, h); err != nil {
-		log.Fatalf("Error in ListenAndServe: %s", err)
+	log.Println("Prediction requests will be send to: ", *addrPredictionServer)
+
+	server := &fasthttp.Server{
+		Handler:            h,
+		Concurrency:        100,
+		MaxRequestsPerConn: 2000,
+		ReadBufferSize:     2000,
+	}
+
+	if err := server.ListenAndServe(*addr); err != nil {
+		log.Fatalf("Error in ListenAndServe: %server", err)
 	}
 	defer req.ConnectionClose()
 	defer resp.ConnectionClose()
 }
 
 func requestHandler(ctx *fasthttp.RequestCtx) {
+
 	if ! ctx.IsPost() {
 		log.Printf("This is must be post request - will not be handled", )
 		return
@@ -77,7 +97,6 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 
 	var agent = handleHeader(body)
 
-	ctx.Response.Header.Set("Connection", "keep-alive")
 	ctx.Response.SetBodyString(agent)
 }
 
@@ -85,21 +104,24 @@ func handleHeader(response []byte) string {
 	userAgent, valueData, orderData := handleLogLine(response)
 
 	if userAgent == "" {
-		return "unknown_no_user_agent"
+		return ReturnUnknownWord
 	}
 
 	if udger_instance.IsCrawler("", userAgent, true) {
-		return "crawler"
+		return ReturnCrawlerWord
 	}
 
 	if isHuman(valueData, orderData) {
-		return "human"
+		return ReturnHumanWord
 	}
 
-	return "bot"
+	return ReturnBotWord
 }
 
 func isHuman(valueData map[string]interface{}, orderData map[string]interface{}) bool {
+
+	mux.Lock()
+	defer mux.Unlock()
 
 	trimmedValue, trimmedOrder := trimData(valueData, orderData)
 	fullFeatures := s.GetSingleFullFeatures(trimmedOrder, trimmedValue, valuesFeaturesOrder)
@@ -115,7 +137,7 @@ func isHuman(valueData map[string]interface{}, orderData map[string]interface{})
 	predictionResults := getPredictionResults(sparseArray)
 	for _, obj := range predictionResults {
 		for key, prediction := range obj {
-			if prediction <= 0.03 {
+			if prediction <= PredictionThreshold {
 				continue
 			}
 			if key == udger_instance.ParseData["user_agent"]["ua_family_code"] {
@@ -129,14 +151,19 @@ func isHuman(valueData map[string]interface{}, orderData map[string]interface{})
 
 func getPredictionResults(sparseArray []string) []map[string]float64 {
 
-	_response := doRequest("http://0.0.0.0:8081/?positions=" + strings.Join(sparseArray, ","))
-
 	var predictionResults []map[string]float64
+
+	if len(sparseArray) == 0 {
+		return predictionResults
+	}
+
+	_response := doRequest("http://" + *addrPredictionServer + "/?positions=" + strings.Join(sparseArray, ","))
 
 	err := json.Unmarshal([]byte(_response), &predictionResults)
 
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
+		return predictionResults
 	}
 
 	return predictionResults
@@ -144,38 +171,62 @@ func getPredictionResults(sparseArray []string) []map[string]float64 {
 
 func doRequest(url string) []byte {
 
+	req.SetRequestURI("")
+
 	req.SetRequestURI(url)
 
-	connection.Do(req, resp)
+	connection.Do(&req, &resp)
 
 	return resp.Body()
 }
 
-func handleLogLine(line []byte) (string, map[string]interface{}, map[string]interface{}) {
+func handleLogLine(headers []byte) (ua string, valueRow map[string]interface{}, orderRow map[string]interface{}) {
 
-	var (
-		valueRow   map[string]interface{} = make(map[string]interface{})
-		orderedRow map[string]interface{} = make(map[string]interface{})
-	)
+	valueRow = make(map[string]interface{})
+	orderRow = make(map[string]interface{})
 
-	if len(line) == 0 || ! isJSON(line) {
-		return "", valueRow, orderedRow
+	if len(headers) == 0 {
+		log.Printf("Request body is empty. Body: %s", string(headers))
+		return "", valueRow, orderRow
 	}
 
-	i := 0
-	jsonparser.ObjectEach(line, func(key []byte, value []byte, dataType jsonparser.ValueType, offset int) error {
-		orderedRow[ string(key)] = i
-		valueRow[ string(key) ] = string(value)
-		i = i + 1
-		return nil
-	})
+	line_splitted := strings.Split(string(headers), "\n")
 
-	// define crawler in User-Agent
-	if userAgent, ok := valueRow["User-Agent"].(string); ok {
-		return userAgent, valueRow, orderedRow
-	} else {
-		return "", valueRow, orderedRow
+	if len(line_splitted) == 0 {
+		log.Printf("Can't split request body with \n symbol. Body: %s", string(headers))
+		return "", valueRow, orderRow
 	}
+
+	for index, _line := range line_splitted {
+		i := strings.Index(_line, ":")
+		if i > -1 {
+			orderRow[ _line[:i] ] = index
+			valueRow[ _line[:i] ] = _line[i+1:]
+		} else {
+			log.Printf("Index of ':' not found in _line: %s", _line)
+		}
+	}
+
+	ua = ""
+
+	if _ua, ok := valueRow["User-Agent"].(string); ok {
+		ua = _ua
+	}
+
+	if _ua, ok := valueRow["user-agent"].(string); ok && ua != "" {
+		ua = _ua
+	}
+
+	if _ua, ok := valueRow["user_agent"].(string); ok && ua != "" {
+		ua = _ua
+	}
+
+	if ua == "" {
+		log.Printf("User-agent is absent. Body: %s", string(headers))
+		return "", valueRow, orderRow
+	}
+
+	return ua, valueRow, orderRow
 }
 
 func trimData(
@@ -184,9 +235,4 @@ func trimData(
 ) (map[string]interface{}, map[string]interface{}) {
 	var headerModel = m.Log{ValueData: valueData, OrderData: orderData}
 	return headerModel.TrimValueData(), headerModel.TrimOrderData()
-}
-
-func isJSON(s []byte) bool {
-	var js map[string]interface{}
-	return json.Unmarshal(s, &js) == nil
 }

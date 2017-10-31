@@ -3,6 +3,7 @@ package udger
 import (
 	"github.com/jinzhu/gorm"
 	"github.com/glenn-brown/golang-pkg-pcre/src/pkg/pcre"
+	"sync"
 )
 
 type Udger struct {
@@ -18,6 +19,7 @@ type Udger struct {
 	rexOS      []rexData
 	DB         *gorm.DB
 	DbPath     string
+	mux sync.Mutex
 }
 
 type rexData struct {

@@ -5,17 +5,31 @@ import numpy as np
 import redis
 import pickle
 
+import time
+
+
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
 sm_features_column_length = int(r.get("smart_clf_features_column_length"))
 
+counter = 0
+
 try:
     smart_clf = pickle.loads(r.get("smart_clf_browser"))
+    smart_clf.n_jobs = 8
+    print("smart_clf n_jobs", smart_clf.n_jobs)
 except:
     print("Cant load model from smart_clf redis storage")
 
 cdef predict(request):
-    features_list = request.query["positions"].split(',')
-    features_list = [int(a) for a in features_list if a not in ""]
+    global counter
+
+    counter += 1
+    try:
+        features_list = request.query["positions"].split(',')
+        features_list = [int(a) for a in features_list if a not in ""]
+    except:
+        print(request.query)
+        print("Cant load model from smart_clf redis storage")
 
     rows = []
     cols = []
@@ -30,16 +44,21 @@ cdef predict(request):
             data.append(0)
 
     x_test = sparse.csr_matrix((data, (rows, cols)), dtype=np.int8)
+    start_time = time.time()
     predict_proba = smart_clf.predict_proba(x_test)
+    print("--- %s seconds ---" % (time.time() - start_time))
     results = []
-    i = 0
 
     for idx, val in enumerate(smart_clf.classes_):
         _new = {}
         _new[val] = round(predict_proba[0][idx], 10)
         results.append(_new)
 
-    return request.Response(text=json.dumps(results))
+    # print(counter, len(results))
+
+    return request.Response(
+        text=json.dumps(results),
+        headers={'Connection': 'keep-alive'})
 
 cdef reload_model(request):
     smart_clf_features_column_length = int(r.get("smart_clf_features_column_length"))
