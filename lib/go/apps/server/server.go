@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"log"
+	"math/rand"
 	"github.com/valyala/fasthttp"
 	"fmt"
 	"encoding/json"
@@ -13,31 +14,58 @@ import (
 	"os"
 	"path/filepath"
 	"github.com/levabd/go-atifraud-ml/lib/go/udger"
-	"sync"
+	"errors"
 )
 
+type PredictionBackends struct {
+	servers []string
+	n       int
+}
+
+func (b *PredictionBackends) Choose() string {
+	idx := b.n % len(b.servers)
+	b.n++
+	return b.servers[idx]
+}
+
+func (b *PredictionBackends) String() string {
+	return strings.Join(b.servers, ", ")
+}
+
 var (
-	addr                 = flag.String("addr", "0.0.0.0:8082", "host:port to listen to")
-	addrPredictionServer = flag.String("addrPredictionServer", "0.0.0.0:8081", "host:port to make request on prediction server")
-	compress             = flag.Bool("compress", false, "Whether to enable transparent response compression")
-	valuesFeaturesOrder  = s.LoadFittedValuesFeaturesOrder()
-	db                   *gorm.DB
-	udger_instance       *udger.Udger = nil
-	connection                        = &fasthttp.Client{}
-	req                               = *fasthttp.AcquireRequest()
-	resp                              = *fasthttp.AcquireResponse()
-	mux                  sync.Mutex
+	addr                = flag.String("addr", "0.0.0.0:8082", "host:port to listen to")
+	compress            = flag.Bool("compress", false, "Whether to enable transparent response compression")
+	predictionServers   = flag.String("predictionServers", "", "The backend servers to predictionServers connections across, separated by commas")
+	valuesFeaturesOrder = s.LoadFittedValuesFeaturesOrder()
+	db                  *gorm.DB
+	udger_instance      *udger.Udger = nil
+	connections         []fasthttp.Client
+	reqs                []fasthttp.Request
+	resps               []fasthttp.Response
+	req                 = *fasthttp.AcquireRequest()
+	resp                = *fasthttp.AcquireResponse()
+	numberOfConnections = 8
+	predictionBackends  *PredictionBackends
 )
 
 const (
 	PredictionThreshold = 0.03
 	ReturnCrawlerWord   = "crawler"
 	ReturnHumanWord     = "human"
+	ReturnErrorWord     = "error"
 	ReturnBotWord       = "bot"
 	ReturnUnknownWord   = "unknown_no_user_agent"
 )
 
 func init() {
+
+	flag.Parse()
+
+	if *predictionServers == "" {
+		log.Println("You forget to spesicfy predictionServers option")
+		return
+	}
+
 	_db, err := gorm.Open("sqlite3", os.Getenv("DB_FILE_PATH_UDGER"))
 	if err != nil {
 		log.Fatalf("server.go - init: Failed to estabblish database connection: %s", err)
@@ -53,11 +81,33 @@ func init() {
 	}
 
 	udger_instance = u
+
+	// create 4 connections
+	servers := strings.Split(*predictionServers, ",")
+	if len(servers) == 1 && servers[0] == "" {
+		log.Fatalln("please specify backend servers with -predictionBackends")
+	}
+	predictionBackends = &PredictionBackends{servers: servers}
+
+	numberOfConnections := len(servers)
+	connections = make([]fasthttp.Client, numberOfConnections)
+	reqs = make([]fasthttp.Request, numberOfConnections)
+	resps = make([]fasthttp.Response, numberOfConnections)
+
+	for i := 0; i < numberOfConnections; i++ {
+		connections[i] = fasthttp.Client{}
+		reqs[i] = *fasthttp.AcquireRequest()
+		resps[i] = *fasthttp.AcquireResponse()
+	}
 }
 
 func main() {
+
+	if *predictionServers == "" {
+		return
+	}
+
 	defer db.Close()
-	flag.Parse()
 
 	h := requestHandler
 	if *compress {
@@ -65,20 +115,17 @@ func main() {
 	}
 
 	log.Println("Strarted listening server on address:", *addr)
-	log.Println("Prediction requests will be send to:", *addrPredictionServer)
+	log.Println("Prediction requests will be send set of servers:", *predictionServers)
 
 	server := &fasthttp.Server{
-		Handler:            h,
-		Concurrency:        100,
-		MaxRequestsPerConn: 2000,
-		ReadBufferSize:     2000,
+		Handler:        h,
+		Concurrency:    1000,
+		ReadBufferSize: 3000,
 	}
 
 	if err := server.ListenAndServe(*addr); err != nil {
-		log.Fatalf("Error in ListenAndServe: %server", err)
+		log.Fatalf("Error in ListenAndServe: %s", err)
 	}
-	defer req.ConnectionClose()
-	defer resp.ConnectionClose()
 }
 
 func requestHandler(ctx *fasthttp.RequestCtx) {
@@ -96,34 +143,43 @@ func requestHandler(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	var agent = handleHeader(clientIp, body)
+	var agent, err = handleHeader(clientIp, body)
+	if err != nil {
+		ctx.Response.SetBodyString(fmt.Sprintln(err))
+		ctx.SetStatusCode(424)
+		return
+	}
 
+	ctx.Response.Header.Set("Connection", "keep-alive")
 	ctx.Response.SetBodyString(agent)
 }
 
-func handleHeader(clientIp []byte, response []byte) string {
+func handleHeader(clientIp []byte, response []byte) (string, error) {
 
 	userAgent, valueData, orderData := handleLogLine(response)
 
-	if userAgent == ""  && string(clientIp)  == ""{
-		return ReturnUnknownWord
+	if userAgent == "" && string(clientIp) == "" {
+		return ReturnUnknownWord, nil
+	}
+	var parsedData = udger_instance.GetNewParsedData()
+
+	if udger_instance.IsCrawler(string(clientIp), userAgent, parsedData) {
+		return ReturnCrawlerWord, nil
 	}
 
-	if udger_instance.IsCrawler(string(clientIp), userAgent) {
-		return ReturnCrawlerWord
+	_isHuman, err := isHuman(valueData, orderData, parsedData)
+	if err != nil {
+		return ReturnErrorWord, err
 	}
 
-	if isHuman(valueData, orderData) {
-		return ReturnHumanWord
+	if _isHuman {
+		return ReturnHumanWord, nil
 	}
 
-	return ReturnBotWord
+	return ReturnBotWord, nil
 }
 
-func isHuman(valueData map[string]interface{}, orderData map[string]interface{}) bool {
-
-	mux.Lock()
-	defer mux.Unlock()
+func isHuman(valueData map[string]interface{}, orderData map[string]interface{}, parsedData map[string]map[string]string, ) (bool, error) {
 
 	trimmedValue, trimmedOrder := trimData(valueData, orderData)
 	fullFeatures := s.GetSingleFullFeatures(trimmedOrder, trimmedValue, valuesFeaturesOrder)
@@ -136,50 +192,61 @@ func isHuman(valueData map[string]interface{}, orderData map[string]interface{})
 		}
 	}
 
-	predictionResults := getPredictionResults(sparseArray)
+	predictionResults, err := getPredictionResults(sparseArray)
+	if err != nil {
+		log.Println(err)
+		return false, err
+	}
+
 	for _, obj := range predictionResults {
 		for key, prediction := range obj {
-			if prediction <= PredictionThreshold {
+			if prediction.(float64) <= PredictionThreshold {
 				continue
 			}
-			if key == udger_instance.ParseData["user_agent"]["ua_family_code"] {
-				return true
+			if key == parsedData["user_agent"]["ua_family_code"] {
+				return true, nil
 			}
 		}
 	}
 
-	return false
+	return false, nil
 }
 
-func getPredictionResults(sparseArray []string) []map[string]float64 {
+func getPredictionResults(sparseArray []string) ([]map[string]interface{}, error) {
 
-	var predictionResults []map[string]float64
+	var predictionResults []map[string]interface{}
 
 	if len(sparseArray) == 0 {
-		return predictionResults
+		return predictionResults, nil
 	}
 
-	_response := doRequest("http://" + *addrPredictionServer + "/?positions=" + strings.Join(sparseArray, ","))
+	var params = strings.Join(sparseArray, ",")
+
+	_response := doRequest(params)
+
+	if len(_response) == 0 {
+		return predictionResults, errors.New(fmt.Sprintf("Prediction server responde with empty body, params in request: %s", params))
+	}
 
 	err := json.Unmarshal([]byte(_response), &predictionResults)
-
 	if err != nil {
-		log.Fatalln(err)
-		return predictionResults
+		return predictionResults, errors.New(fmt.Sprintf("Uncorrect JSON from prediction server response: %s", err))
 	}
 
-	return predictionResults
+	return predictionResults, nil
 }
 
-func doRequest(url string) []byte {
+func doRequest(params string) []byte {
 
-	req.SetRequestURI("")
+	r := rand.Intn(numberOfConnections)
 
-	req.SetRequestURI(url)
+	reqs[r].SetRequestURI("http://" + predictionBackends.Choose() + "/?positions=" + params)
+	connections[r].Do(&reqs[r], &resps[r])
 
-	connection.Do(&req, &resp)
+	//defer resps[r].SetConnectionClose()
+	//defer reqs[r].SetConnectionClose()
 
-	return resp.Body()
+	return resps[r].Body()
 }
 
 func handleLogLine(headers []byte) (ua string, valueRow map[string]interface{}, orderRow map[string]interface{}) {
@@ -215,16 +282,16 @@ func handleLogLine(headers []byte) (ua string, valueRow map[string]interface{}, 
 		ua = _ua
 	}
 
-	if _ua, ok := valueRow["user-agent"].(string); ok && ua != "" {
+	if _ua, ok := valueRow["user-agent"].(string); ok && ua == "" {
 		ua = _ua
 	}
 
-	if _ua, ok := valueRow["user_agent"].(string); ok && ua != "" {
+	if _ua, ok := valueRow["user_agent"].(string); ok && ua == "" {
 		ua = _ua
 	}
 
 	if ua == "" {
-		log.Printf("User-agent is absent. Body: %s", string(headers))
+		log.Printf("User-agent is absent. Body: %+v", valueRow)
 		return "", valueRow, orderRow
 	}
 

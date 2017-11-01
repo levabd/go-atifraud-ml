@@ -8,6 +8,7 @@ data/logs_go/parse_gz_logs.log
 data/logs_go/antifraud_server.log
 data/logs_go/filename.log
 data/logs_go/prediction_server.log
+data/logs_go/*
 
 nohup.out
 parse_gz_logs

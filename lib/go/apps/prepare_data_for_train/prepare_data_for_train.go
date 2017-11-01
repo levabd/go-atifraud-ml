@@ -10,6 +10,7 @@ import (
 )
 
 func main() {
+
 	auVersionIntCodes, _, _, intFullFeatures, familyCodesList, logIds := services.PrepareUaFamilyCodes(90000)
 
 	storePreparedData(intFullFeatures, auVersionIntCodes, familyCodesList, logIds)

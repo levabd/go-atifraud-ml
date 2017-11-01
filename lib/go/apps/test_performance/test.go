@@ -8,7 +8,6 @@ import (
 	"log"
 	"fmt"
 	"github.com/levabd/go-atifraud-ml/lib/go/models"
-	"encoding/json"
 )
 
 var (
@@ -31,8 +30,13 @@ func main() {
 
 	for i := 0; i < len(logs); i++ {
 		d := logs[i].ValueData
-		valueString, _ := json.Marshal(d)
-		makeRequest(string(valueString))
+		var str string
+		for key, item := range d {
+			str += key + ":" + item.(string)+ "\n"
+		}
+		str+="user-agent:"+logs[i].UserAgent+ "\n"
+		//valueString, _ := json.Marshal(d)
+		makeRequest(str)
 	}
 
 	defer timeTrack(time.Now(), "main")

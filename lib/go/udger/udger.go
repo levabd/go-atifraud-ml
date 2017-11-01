@@ -17,85 +17,93 @@ func timeTrack(start time.Time, name string) {
 	elapsed := time.Since(start)
 	log.Printf("%s took %s", name, elapsed)
 }
+
+func (udger *Udger) GetNewParsedData() (parsedData map[string]map[string]string){
+	parsedData = make(map[string]map[string]string)
+
+	parsedData["user_agent"] = make(map[string]string)
+	parsedData["user_agent"]["ua_string"] = ""
+	parsedData["user_agent"]["ua_class"] = ""
+	parsedData["user_agent"]["ua_class_code"] = ""
+	parsedData["user_agent"]["ua"] = ""
+	parsedData["user_agent"]["ua_version"] = ""
+	parsedData["user_agent"]["ua_version_major"] = ""
+	parsedData["user_agent"]["ua_uptodate_current_version"] = ""
+	parsedData["user_agent"]["ua_family"] = ""
+	parsedData["user_agent"]["ua_family_code"] = ""
+	parsedData["user_agent"]["ua_family_homepage"] = ""
+	parsedData["user_agent"]["ua_family_vendor"] = ""
+	parsedData["user_agent"]["ua_family_vendor_code"] = ""
+	parsedData["user_agent"]["ua_family_vendor_homepage"] = ""
+	parsedData["user_agent"]["ua_family_icon"] = ""
+	parsedData["user_agent"]["ua_family_icon_big"] = ""
+	parsedData["user_agent"]["ua_family_info_url"] = ""
+	parsedData["user_agent"]["ua_engine"] = ""
+	parsedData["user_agent"]["os"] = ""
+	parsedData["user_agent"]["os_code"] = ""
+	parsedData["user_agent"]["os_homepage"] = ""
+	parsedData["user_agent"]["os_icon"] = ""
+	parsedData["user_agent"]["os_icon_big"] = ""
+	parsedData["user_agent"]["os_info_url"] = ""
+	parsedData["user_agent"]["os_family"] = ""
+	parsedData["user_agent"]["os_family_code"] = ""
+	parsedData["user_agent"]["os_family_vendor"] = ""
+	parsedData["user_agent"]["os_family_vendor_code"] = ""
+	parsedData["user_agent"]["os_family_vendor_homepage"] = ""
+	parsedData["user_agent"]["device_class"] = ""
+	parsedData["user_agent"]["device_class_code"] = ""
+	parsedData["user_agent"]["device_class_icon"] = ""
+	parsedData["user_agent"]["device_class_icon_big"] = ""
+	parsedData["user_agent"]["device_class_info_url"] = ""
+	parsedData["user_agent"]["device_marketname"] = ""
+	parsedData["user_agent"]["device_brand"] = ""
+	parsedData["user_agent"]["device_brand_code"] = ""
+	parsedData["user_agent"]["device_brand_homepage"] = ""
+	parsedData["user_agent"]["device_brand_icon"] = ""
+	parsedData["user_agent"]["device_class_code"] = ""
+	parsedData["user_agent"]["device_brand_icon_big"] = ""
+	parsedData["user_agent"]["device_brand_info_url"] = ""
+	parsedData["user_agent"]["crawler_last_seen"] = ""
+	parsedData["user_agent"]["crawler_category"] = ""
+	parsedData["user_agent"]["crawler_category_code"] = ""
+	parsedData["user_agent"]["crawler_respect_robotstxt"] = ""
+	parsedData["ip_address"] = make(map[string]string)
+	parsedData["ip_address"]["ip"] = ""
+	parsedData["ip_address"]["ip_ver"] = ""
+	parsedData["ip_address"]["ip_classification"] = ""
+	parsedData["ip_address"]["ip_classification_code"] = ""
+	parsedData["ip_address"]["ip_hostname"] = ""
+	parsedData["ip_address"]["ip_last_seen"] = ""
+	parsedData["ip_address"]["ip_country"] = ""
+	parsedData["ip_address"]["ip_country_code"] = ""
+	parsedData["ip_address"]["ip_city"] = ""
+	parsedData["ip_address"]["crawler_name"] = ""
+	parsedData["ip_address"]["crawler_ver"] = ""
+	parsedData["ip_address"]["crawler_ver_major"] = ""
+	parsedData["ip_address"]["crawler_family"] = ""
+	parsedData["ip_address"]["crawler_family_code"] = ""
+	parsedData["ip_address"]["crawler_family_homepage"] = ""
+	parsedData["ip_address"]["crawler_family_vendor"] = ""
+	parsedData["ip_address"]["crawler_family_vendor_code"] = ""
+	parsedData["ip_address"]["crawler_family_vendor_homepage"] = ""
+	parsedData["ip_address"]["crawler_family_icon"] = ""
+	parsedData["ip_address"]["crawler_family_info_url"] = ""
+	parsedData["ip_address"]["crawler_last_seen"] = ""
+	parsedData["ip_address"]["crawler_category"] = ""
+	parsedData["ip_address"]["crawler_category_code"] = ""
+	parsedData["ip_address"]["crawler_respect_robotstxt"] = ""
+	parsedData["ip_address"]["datacenter_name"] = ""
+	parsedData["ip_address"]["datacenter_name_code"] = ""
+	parsedData["ip_address"]["datacenter_homepage"] = ""
+
+	return
+}
+
 func (udger *Udger) init() error {
 	defer timeTrack(time.Now(), "udger init")
 
 	// init data keys
-	udger.ParseData = make(map[string]map[string]string)
-	udger.ParseData["user_agent"] = make(map[string]string)
-	udger.ParseData["user_agent"]["ua_string"] = ""
-	udger.ParseData["user_agent"]["ua_class"] = ""
-	udger.ParseData["user_agent"]["ua_class_code"] = ""
-	udger.ParseData["user_agent"]["ua"] = ""
-	udger.ParseData["user_agent"]["ua_version"] = ""
-	udger.ParseData["user_agent"]["ua_version_major"] = ""
-	udger.ParseData["user_agent"]["ua_uptodate_current_version"] = ""
-	udger.ParseData["user_agent"]["ua_family"] = ""
-	udger.ParseData["user_agent"]["ua_family_code"] = ""
-	udger.ParseData["user_agent"]["ua_family_homepage"] = ""
-	udger.ParseData["user_agent"]["ua_family_vendor"] = ""
-	udger.ParseData["user_agent"]["ua_family_vendor_code"] = ""
-	udger.ParseData["user_agent"]["ua_family_vendor_homepage"] = ""
-	udger.ParseData["user_agent"]["ua_family_icon"] = ""
-	udger.ParseData["user_agent"]["ua_family_icon_big"] = ""
-	udger.ParseData["user_agent"]["ua_family_info_url"] = ""
-	udger.ParseData["user_agent"]["ua_engine"] = ""
-	udger.ParseData["user_agent"]["os"] = ""
-	udger.ParseData["user_agent"]["os_code"] = ""
-	udger.ParseData["user_agent"]["os_homepage"] = ""
-	udger.ParseData["user_agent"]["os_icon"] = ""
-	udger.ParseData["user_agent"]["os_icon_big"] = ""
-	udger.ParseData["user_agent"]["os_info_url"] = ""
-	udger.ParseData["user_agent"]["os_family"] = ""
-	udger.ParseData["user_agent"]["os_family_code"] = ""
-	udger.ParseData["user_agent"]["os_family_vendor"] = ""
-	udger.ParseData["user_agent"]["os_family_vendor_code"] = ""
-	udger.ParseData["user_agent"]["os_family_vendor_homepage"] = ""
-	udger.ParseData["user_agent"]["device_class"] = ""
-	udger.ParseData["user_agent"]["device_class_code"] = ""
-	udger.ParseData["user_agent"]["device_class_icon"] = ""
-	udger.ParseData["user_agent"]["device_class_icon_big"] = ""
-	udger.ParseData["user_agent"]["device_class_info_url"] = ""
-	udger.ParseData["user_agent"]["device_marketname"] = ""
-	udger.ParseData["user_agent"]["device_brand"] = ""
-	udger.ParseData["user_agent"]["device_brand_code"] = ""
-	udger.ParseData["user_agent"]["device_brand_homepage"] = ""
-	udger.ParseData["user_agent"]["device_brand_icon"] = ""
-	udger.ParseData["user_agent"]["device_class_code"] = ""
-	udger.ParseData["user_agent"]["device_brand_icon_big"] = ""
-	udger.ParseData["user_agent"]["device_brand_info_url"] = ""
-	udger.ParseData["user_agent"]["crawler_last_seen"] = ""
-	udger.ParseData["user_agent"]["crawler_category"] = ""
-	udger.ParseData["user_agent"]["crawler_category_code"] = ""
-	udger.ParseData["user_agent"]["crawler_respect_robotstxt"] = ""
-	udger.ParseData["ip_address"] = make(map[string]string)
-	udger.ParseData["ip_address"]["ip"] = ""
-	udger.ParseData["ip_address"]["ip_ver"] = ""
-	udger.ParseData["ip_address"]["ip_classification"] = ""
-	udger.ParseData["ip_address"]["ip_classification_code"] = ""
-	udger.ParseData["ip_address"]["ip_hostname"] = ""
-	udger.ParseData["ip_address"]["ip_last_seen"] = ""
-	udger.ParseData["ip_address"]["ip_country"] = ""
-	udger.ParseData["ip_address"]["ip_country_code"] = ""
-	udger.ParseData["ip_address"]["ip_city"] = ""
-	udger.ParseData["ip_address"]["crawler_name"] = ""
-	udger.ParseData["ip_address"]["crawler_ver"] = ""
-	udger.ParseData["ip_address"]["crawler_ver_major"] = ""
-	udger.ParseData["ip_address"]["crawler_family"] = ""
-	udger.ParseData["ip_address"]["crawler_family_code"] = ""
-	udger.ParseData["ip_address"]["crawler_family_homepage"] = ""
-	udger.ParseData["ip_address"]["crawler_family_vendor"] = ""
-	udger.ParseData["ip_address"]["crawler_family_vendor_code"] = ""
-	udger.ParseData["ip_address"]["crawler_family_vendor_homepage"] = ""
-	udger.ParseData["ip_address"]["crawler_family_icon"] = ""
-	udger.ParseData["ip_address"]["crawler_family_info_url"] = ""
-	udger.ParseData["ip_address"]["crawler_last_seen"] = ""
-	udger.ParseData["ip_address"]["crawler_category"] = ""
-	udger.ParseData["ip_address"]["crawler_category_code"] = ""
-	udger.ParseData["ip_address"]["crawler_respect_robotstxt"] = ""
-	udger.ParseData["ip_address"]["datacenter_name"] = ""
-	udger.ParseData["ip_address"]["datacenter_name_code"] = ""
-	udger.ParseData["ip_address"]["datacenter_homepage"] = ""
+	udger.ParseData = udger.GetNewParsedData()
 
 	// load dictionaries
 	var clients []Client
@@ -245,45 +253,43 @@ func (udger *Udger) findData(ua string, data []rexData, withVersion bool) (idx i
 	return -1, "", nil
 }
 
-func (udger *Udger) ParseUa(ua string) (map[string]map[string]string, error) {
-
-	udger.mux.Lock()
+func (udger *Udger) ParseUa(ua string, parsedData map[string]map[string]string) (map[string]map[string]string, error) {
 
 	if ua != "" {
 
-		udger.ParseData["user_agent"]["ua_string"] = ua;
-		udger.ParseData["user_agent"]["ua_class"] = "Unrecognized";
-		udger.ParseData["user_agent"]["ua_class_code"] = "unrecognized";
+		parsedData["user_agent"]["ua_string"] = ua;
+		parsedData["user_agent"]["ua_class"] = "Unrecognized";
+		parsedData["user_agent"]["ua_class_code"] = "unrecognized";
 
 		if crawler, ok := udger.Crawlers[ua]; ok {
 
 			//client_class_id = 99;
-			udger.ParseData["user_agent"]["ua_class"] = "Crawler";
-			udger.ParseData["user_agent"]["ua_class_code"] = "crawler";
+			parsedData["user_agent"]["ua_class"] = "Crawler";
+			parsedData["user_agent"]["ua_class_code"] = "crawler";
 
 			ver := fmt.Sprintf("%.2f", crawler.Ver)
 			if ver != "" {
-				udger.ParseData["user_agent"]["ua"] = crawler.Name + " " + ver
-				udger.ParseData["user_agent"]["ua_version"] = fmt.Sprintf("%.2f", crawler.Ver);
-				udger.ParseData["user_agent"]["ua_version_major"] = string(strings.Split(string(ver), ".")[0])
+				parsedData["user_agent"]["ua"] = crawler.Name + " " + ver
+				parsedData["user_agent"]["ua_version"] = fmt.Sprintf("%.2f", crawler.Ver);
+				parsedData["user_agent"]["ua_version_major"] = string(strings.Split(string(ver), ".")[0])
 			} else {
-				udger.ParseData["user_agent"]["ua"] = crawler.Name
-				udger.ParseData["user_agent"]["ua_version"] = ""
-				udger.ParseData["user_agent"]["ua_version_major"] = ""
+				parsedData["user_agent"]["ua"] = crawler.Name
+				parsedData["user_agent"]["ua_version"] = ""
+				parsedData["user_agent"]["ua_version_major"] = ""
 			}
 
-			udger.ParseData["user_agent"]["ua_family"] = crawler.Family;
-			udger.ParseData["user_agent"]["ua_family_code"] = crawler.FamilyCode;
-			udger.ParseData["user_agent"]["ua_family_homepage"] = crawler.FamilyHomepage;
-			udger.ParseData["user_agent"]["ua_family_vendor"] = crawler.Vendor;
-			udger.ParseData["user_agent"]["ua_family_vendor_code"] = crawler.VendorCode;
-			udger.ParseData["user_agent"]["ua_family_vendor_homepage"] = crawler.VendorHomepage;
-			udger.ParseData["user_agent"]["ua_family_icon"] = crawler.FamilyIcon;
-			udger.ParseData["user_agent"]["ua_family_info_url"] = "https://udger.com/resources/ua-list/bot-detail?bot=" + crawler.Family + "#id" + string(crawler.Botid);
-			udger.ParseData["user_agent"]["crawler_last_seen"] = string(crawler.LastSeen);
-			udger.ParseData["user_agent"]["crawler_category"] = crawler.CrawlerClassification;
-			udger.ParseData["user_agent"]["crawler_category_code"] = crawler.CrawlerClassificationCode;
-			udger.ParseData["user_agent"]["crawler_respect_robotstxt"] = crawler.RespectRobotstxt;
+			parsedData["user_agent"]["ua_family"] = crawler.Family;
+			parsedData["user_agent"]["ua_family_code"] = crawler.FamilyCode;
+			parsedData["user_agent"]["ua_family_homepage"] = crawler.FamilyHomepage;
+			parsedData["user_agent"]["ua_family_vendor"] = crawler.Vendor;
+			parsedData["user_agent"]["ua_family_vendor_code"] = crawler.VendorCode;
+			parsedData["user_agent"]["ua_family_vendor_homepage"] = crawler.VendorHomepage;
+			parsedData["user_agent"]["ua_family_icon"] = crawler.FamilyIcon;
+			parsedData["user_agent"]["ua_family_info_url"] = "https://udger.com/resources/ua-list/bot-detail?bot=" + crawler.Family + "#id" + string(crawler.Botid);
+			parsedData["user_agent"]["crawler_last_seen"] = string(crawler.LastSeen);
+			parsedData["user_agent"]["crawler_category"] = crawler.CrawlerClassification;
+			parsedData["user_agent"]["crawler_category_code"] = crawler.CrawlerClassificationCode;
+			parsedData["user_agent"]["crawler_respect_robotstxt"] = crawler.RespectRobotstxt;
 
 		} else {
 
@@ -294,59 +300,57 @@ func (udger *Udger) ParseUa(ua string) (map[string]map[string]string, error) {
 			}
 
 			if client, ok := udger.Clients[clientID]; ok {
-				udger.ParseData["user_agent"]["ua_class"] = client.ClientClassification
-				udger.ParseData["user_agent"]["ua_class_code"] = client.ClientClassificationCode
+				parsedData["user_agent"]["ua_class"] = client.ClientClassification
+				parsedData["user_agent"]["ua_class_code"] = client.ClientClassificationCode
 
 				if version != "" {
-					udger.ParseData["user_agent"]["ua"] = client.Name + " " + version
-					udger.ParseData["user_agent"]["ua_version"] = version
-					udger.ParseData["user_agent"]["ua_version_major"] = string(strings.Split(string(version), ".")[0])
+					parsedData["user_agent"]["ua"] = client.Name + " " + version
+					parsedData["user_agent"]["ua_version"] = version
+					parsedData["user_agent"]["ua_version_major"] = string(strings.Split(string(version), ".")[0])
 				} else {
-					udger.ParseData["user_agent"]["ua"] = client.Name
-					udger.ParseData["user_agent"]["ua_version"] = ""
-					udger.ParseData["user_agent"]["ua_version_major"] = ""
+					parsedData["user_agent"]["ua"] = client.Name
+					parsedData["user_agent"]["ua_version"] = ""
+					parsedData["user_agent"]["ua_version_major"] = ""
 				}
 
-				udger.ParseData["user_agent"]["ua_uptodate_current_version"] = client.UptodateCurrentVersion
-				udger.ParseData["user_agent"]["ua_family"] = client.Name
-				udger.ParseData["user_agent"]["ua_family_code"] = client.NameCode
-				udger.ParseData["user_agent"]["ua_family_homepage"] = client.Homepage
-				udger.ParseData["user_agent"]["ua_family_vendor"] = client.Vendor
-				udger.ParseData["user_agent"]["ua_family_vendor_code"] = client.VendorCode
-				udger.ParseData["user_agent"]["ua_family_vendor_homepage"] = client.VendorHomepage
-				udger.ParseData["user_agent"]["ua_family_icon"] = client.Icon
-				udger.ParseData["user_agent"]["ua_family_icon_big"] = client.IconBig
-				udger.ParseData["user_agent"]["ua_family_info_url"] = "https://udger.com/resources/ua-list/browser-detail?browser=" + client.Name;
-				udger.ParseData["user_agent"]["ua_engine"] = client.Engine
+				parsedData["user_agent"]["ua_uptodate_current_version"] = client.UptodateCurrentVersion
+				parsedData["user_agent"]["ua_family"] = client.Name
+				parsedData["user_agent"]["ua_family_code"] = client.NameCode
+				parsedData["user_agent"]["ua_family_homepage"] = client.Homepage
+				parsedData["user_agent"]["ua_family_vendor"] = client.Vendor
+				parsedData["user_agent"]["ua_family_vendor_code"] = client.VendorCode
+				parsedData["user_agent"]["ua_family_vendor_homepage"] = client.VendorHomepage
+				parsedData["user_agent"]["ua_family_icon"] = client.Icon
+				parsedData["user_agent"]["ua_family_icon_big"] = client.IconBig
+				parsedData["user_agent"]["ua_family_info_url"] = "https://udger.com/resources/ua-list/browser-detail?browser=" + client.Name;
+				parsedData["user_agent"]["ua_engine"] = client.Engine
 			}
 		}
 	}
-	udger.mux.Unlock()
-	return udger.ParseData, nil
+
+	return parsedData, nil
 }
 
-func (udger *Udger) ParseIp(ip string) map[string]map[string]string {
+func (udger *Udger) ParseIp(ip string, parsedData map[string]map[string]string ) map[string]map[string]string {
 
-	udger.mux.Lock()
-	defer udger.mux.Unlock()
 
 	if ip == "" {
-		return udger.ParseData
+		return parsedData
 	}
 
-	udger.ParseData["ip_address"]["ip"] = ip;
+	parsedData["ip_address"]["ip"] = ip;
 	ipver := getIpVersion(ip);
 	if ipver == "v4" {
-		udger.ParseData["ip_address"]["ip_ver"] = ipver
+		parsedData["ip_address"]["ip_ver"] = ipver
 		if IpClassificationCode, ok := udger.IPS[ip]; ok {
-			udger.ParseData["ip_address"]["ip_classification_code"] = IpClassificationCode
-			return udger.ParseData
+			parsedData["ip_address"]["ip_classification_code"] = IpClassificationCode
+			return parsedData
 		}
 	}
 
-	udger.ParseData["ip_address"]["ip_classification_code"] = ""
+	parsedData["ip_address"]["ip_classification_code"] = ""
 
-	return udger.ParseData
+	return parsedData
 }
 
 func getIpVersion(ipAddress string) string {
@@ -364,9 +368,9 @@ func getIpVersion(ipAddress string) string {
 	return ""
 }
 
-func (udger *Udger) IsCrawler(ip string, ua string) bool {
-	udger.ParseUa(ua)
-	udger.ParseIp(ip)
+func (udger *Udger) IsCrawler(ip string, ua string, parsedData  map[string]map[string]string) bool {
+	udger.ParseUa(ua, parsedData)
+	udger.ParseIp(ip, parsedData)
 
 	if  udger.ParseData["ip_address"]["ip_classification_code"] == "crawler" ||
 		( udger.ParseData["user_agent"]["ua_class_code"] == "crawler" ||

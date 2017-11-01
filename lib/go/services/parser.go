@@ -124,14 +124,15 @@ func HandleLogLine(
 		if ua == "" {
 			return false, nil, nil, nil
 		}
+		var parsedData = udger.GetNewParsedData()
 
-		if filterCrawlers && udger.IsCrawler(ip, ua) {
+		if filterCrawlers && udger.IsCrawler(ip, ua, parsedData) {
 			//log.Println("ua is crawler: ", elements[1], ua)
 			return false, nil, nil, nil
 		}
 
 		if needUaParsing {
-			uaObj := udger.ParseData["user_agent"]
+			uaObj := parsedData["user_agent"]
 
 			if uaObj["ua_family_code"] == "" {
 				log.Println("ua_family_code is empty: ", elements[1], ua)
@@ -384,27 +385,29 @@ func GetLatestLogFilePath() (string, string, error) {
 		log.Fatalf("parsers.GetLatestLogFilePath: There is no files(gz) in th dir %s", logsDir)
 		return "", "", nil
 	} else {
-
-		// if file already loaded - return error
 		fileName := files[len(files)-1]
-		db, err := gorm.Open("postgres", m.GetDBConnectionStr())
-		if err != nil {
-			log.Fatalf("parser.go - main: Failed to connect database: %s", err)
-		}
-		defer db.Close()
-		if !db.HasTable(&m.GzLog{}) {
-			db.AutoMigrate(&m.GzLog{})
-		}
 
-		gzLog := m.GzLog{}
-		db.Where("file_name = ?", fileName).First(&gzLog)
-
-		if gzLog.ID != 0 {
+		if GzLogFileLoaded(fileName) {
 			return filepath.Join(logsDir, fileName), fileName, errors.New(fmt.Sprintf("File %s already loaded to DB", fileName))
 		}
 
 		return filepath.Join(logsDir, fileName), fileName, nil
 	}
+}
+
+func GzLogFileLoaded(fileName string)  bool {
+	// if file already loaded - return error
+	db, err := gorm.Open("postgres", m.GetDBConnectionStr())
+	if err != nil {
+		log.Fatalf("parser.go - main: Failed to connect database: %s", err)
+	}
+	defer db.Close()
+	if !db.HasTable(&m.GzLog{}) {
+		db.AutoMigrate(&m.GzLog{})
+	}
+	gzLog := m.GzLog{}
+	db.Where("file_name = ?", fileName).First(&gzLog)
+	return gzLog.ID != 0
 }
 
 func PrepareData(startLogTime int64, finishLogTime int64) (

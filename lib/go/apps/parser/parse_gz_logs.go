@@ -17,12 +17,17 @@ import (
 	"github.com/valyala/fasthttp"
 	"strings"
 	"os/exec"
+	"flag"
 )
 
 var (
-	connection = &fasthttp.Client{}
-	req        = fasthttp.AcquireRequest()
-	resp       = fasthttp.AcquireResponse()
+	parseAllFiles = flag.Bool("all", false, "host:port to listen to")
+	parseOneFile  = flag.String("one", "path", "full file path to parse")
+	onlyEducate   = flag.Bool("educate", false, "educate model")
+	sample        = flag.Int64("sample", 90000, "education sample")
+	connection    = &fasthttp.Client{}
+	req           = fasthttp.AcquireRequest()
+	resp          = fasthttp.AcquireResponse()
 )
 
 func init() {
@@ -32,32 +37,18 @@ func init() {
 	}
 }
 
-func needAllFilesParsing(args []string) bool {
-
-	var needAllFileParsing bool = false
-
-	if len(args) == 0 || len(args) == 1 {
-		return false
-	}
-
-	if args[1] == "true" {
-		needAllFileParsing = true
-	}
-
-	return needAllFileParsing
-}
-
-// Parse GZ file/files and store data in DB
-// If first command argument is true - all files
-// in gir data/logs/*gz will we parsed and stored in DB
-// Example(run from project dir):
-//     go run lib/go/commands/parse_gz_logs.go true
-//
-// If there is no command argument - only latest
-// gz file in data/logs/*gz will be parsed and stored
-// Example(run from project dir):
-//     go run lib/go/commands/parse_gz_logs.go [false]
+// Parse GZ file/files and store data in DB - then train model
 func main() {
+
+	flag.Parse()
+
+	if *onlyEducate {
+		log.Println("Only education mode")
+		log.Println("Education sample", *sample)
+		EducateModel()
+		return
+	}
+
 	defer timeTrack(time.Now(), "parse logs")
 
 	if os.Getenv("PARSER_TIME_END") == "" || os.Getenv("PARSER_TIME_START") == "" {
@@ -66,7 +57,6 @@ func main() {
 		return
 	}
 
-	needAllFileParsing := needAllFilesParsing(os.Args)
 	startLogTime := helpers.StrToInt64(os.Getenv("PARSER_TIME_START"))
 	finishLogTime := carbon.Now().Unix()
 
@@ -88,7 +78,29 @@ func main() {
 		panic(err)
 	}
 
-	if needAllFileParsing {
+	if *parseOneFile != "" && *parseOneFile != "path" {
+		log.Println("Parse one file mode")
+
+		if _, err := os.Stat(*parseOneFile); os.IsNotExist(err) {
+			log.Fatalf("parse_gz_logs.go: main - Privided path to file is not valid - file does not exist: %s ", *parseOneFile)
+			return
+		}
+
+		_, fileName := filepath.Split(*parseOneFile)
+
+		log.Fatalf("parse_gz_logs.go: main - File name: %s ", fileName)
+
+		if s.GzLogFileLoaded(fileName) {
+			log.Fatalf("parse_gz_logs.go: main -File already loaded in DB: %s ", fileName)
+			return
+		}
+
+		handleFile(*parseOneFile, startLogTime, finishLogTime, _udger, db, fileName)
+		return
+	}
+
+	if *parseAllFiles {
+		log.Println("Parse all files mode")
 
 		logsDir := filepath.Join(os.Getenv("APP_ROOT_DIR"), "data", "logs")
 		files := helpers.GetFileFromDirWithExt(logsDir, "gz")
@@ -130,6 +142,8 @@ func main() {
 		return
 	}
 
+	log.Println("Parse the latest file mode")
+
 	// single latest log gz file parsing
 	fullFilePath, fileName, err := s.GetLatestLogFilePath()
 	if err != nil {
@@ -138,8 +152,19 @@ func main() {
 		return
 	}
 
-	// store new loaded log
-	db.Create(&m.GzLog{FileName: fileName})
+	handleFile(fullFilePath, startLogTime, finishLogTime, _udger, db, fileName)
+
+	EducateModel()
+}
+
+func handleFile(
+	fullFilePath string,
+	startLogTime int64,
+	finishLogTime int64,
+	_udger *udger.Udger,
+	db *gorm.DB,
+	fileName string,
+) {
 
 	e := s.ParseAndStoreSingleGzLogInDb(
 		fullFilePath,
@@ -149,15 +174,15 @@ func main() {
 		finishLogTime,
 		false, _udger)
 
+	// store new loaded log
+	db.Create(&m.GzLog{FileName: fileName})
+
 	if e != nil {
 		fmt.Printf("parse_gz_logs.go: main - Failed to ParseAndStoreSingleGzLogInDb: %s", e)
 		log.Fatalf("parse_gz_logs.go: main - Failed to ParseAndStoreSingleGzLogInDb: %s", e)
 	}
-
 	fmt.Printf("parse_gz_logs.go: main - Successfully parse file: %s ", e)
 	log.Println("parse_gz_logs.go: main - Successfully parse file: ", fileName)
-
-	EducateModel()
 }
 
 func EducateModel() {
@@ -176,13 +201,16 @@ func reloadModelOnPythonServer() {
 
 	log.Println("Start reloading model on prediction server")
 
-	_response := doRequest("http://0.0.0.0:8081/reload")
-	log.Println("_response", string(_response))
+	portList := []string{"5000", "5001", "5002", "5003", "5004", "5005", "5006", "5007"}
 
-	if string(_response) == "reloaded" {
-		log.Println("Prediction model reloaded on python server")
-	} else {
-		log.Println("Problem while reloading prediction model on python server", string(_response))
+	for _, port := range portList {
+		_response := doRequest("http://0.0.0.0:" + port + "/reload")
+
+		if string(_response) == "reloaded" {
+			log.Printf("Prediction model reloaded on python server: 0.0.0.0:%s", port)
+		} else {
+			log.Println("Problem while reloading prediction model on python server: 0.0.0.0:%s. Response: %s", port, string(_response))
+		}
 	}
 }
 
@@ -199,14 +227,14 @@ func train() {
 	if strings.Contains(string(out), "Education finished") {
 		log.Println("Education finished")
 	} else {
-		log.Println("Problem detected while educate model")
+		log.Println("Problem detected while onlyEducate model")
 	}
 }
 
 func prepareDataForTrain() {
 	log.Println("Start preparing data for train")
 
-	_, _, _, intFullFeatures, uaFamilyCodesList, logIds := s.PrepareUaFamilyCodes(90000)
+	_, _, _, intFullFeatures, uaFamilyCodesList, logIds := s.PrepareUaFamilyCodes(*sample)
 	db, err := gorm.Open("postgres", m.GetDBConnectionStr())
 	if err != nil {
 		panic("user_agent_helpers.go - LoadFittedUserAgentCodes: Failed to connect to database")

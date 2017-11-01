@@ -17,7 +17,7 @@ warnings.filterwarnings("ignore")
 os.environ["JOBLIB_TEMP_FOLDER"] = "/tmp"
 #os.environ["JOBLIB_TEMP_FOLDER"] = "/media/levabd/ScienceProjects/data"
 try:
-    conn = psycopg2.connect("dbname='antifraud' user='antifraud' host='localhost' password=''")
+    conn = psycopg2.connect("dbname='antifraud' user='antifraud' host='localhost' password='isPITBd59pP2b'")
 except:
     print ("I am unable to connect to the database")
 
@@ -76,9 +76,10 @@ cpdef run_education():
 
     print("Education started")
 
-    smart_clf = OneVsRestClassifier(LogisticRegression(C=100, n_jobs=-1), n_jobs=-1)
+    smart_clf = OneVsRestClassifier(LogisticRegression(C=100), n_jobs=-1)
     smart_clf.fit(sm_features, browsers)
 
+    r.flushall()
     r.set("smart_clf_features_column_length", sm_features.shape[1])
     r.set("smart_clf_browser", pickle.dumps(smart_clf))
     conn.close()
